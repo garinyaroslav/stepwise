@@ -1,6 +1,6 @@
-# Etapnik
+# Stepwise
 
-Etapnik is a Spring Boot application designed for stage-by-stage tracking and management of academic projects, such as theses and coursework. It provides a RESTful API with JWT-based authentication, uses PostgreSQL with Hibernate for data persistence, and integrates MinIO for file storage.
+Stepwise is a Spring Boot application designed for stage-by-stage tracking and management of academic projects, such as theses and coursework. It provides a RESTful API with JWT-based authentication, uses PostgreSQL with Hibernate for data persistence, and integrates MinIO for file storage.
 
 ## Features
 
@@ -33,6 +33,6 @@ Etapnik is a Spring Boot application designed for stage-by-stage tracking and ma
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/etapnik.git
-cd etapnik
+git clone https://github.com/garinyaroslav/stepwise.git
+cd stepwise
 ```
