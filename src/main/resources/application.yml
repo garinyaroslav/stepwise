@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: stepwise
+  datasource:
+    url: jdbc:postgresql://localhost:5432/stepwise_db
+    username: admin
+    password: ${DB_PASSWORD:admin}
+    hikari:
+      schema: stepwise_schema
+      connection-init-sql: CREATE SCHEMA IF NOT EXISTS stepwise_schema
+      connection-timeout: 10000
+  jpa:
+    generate-ddl: true
+    open-in-view: false
+
+jwt:
+  secret: ${JWT_SECRET:very-very-secure-secret-key-that-is-at-least-32-characters-long}
+  expiration: 3600000
