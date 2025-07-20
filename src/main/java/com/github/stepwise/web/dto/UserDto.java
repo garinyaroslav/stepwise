@@ -13,14 +13,14 @@ import jakarta.validation.constraints.Pattern;
 @AllArgsConstructor
 public class UserDto {
 
-  @NotBlank(message = "Имя пользователя не может быть пустым")
-  @Size(min = 3, max = 20, message = "Имя пользователя должно быть от 3 до 20 символов")
+  @NotBlank(message = "useranme is required")
+  @Size(min = 3, max = 20, message = "useranme must be between 3 and 20 characters")
   @Pattern(regexp = "^[a-zA-Z0-9_]+$",
-      message = "Имя пользователя может содержать только буквы, цифры и подчеркивания")
+      message = "useranme can only contain letters, numbers, and underscores")
   private String username;
 
-  @NotBlank(message = "Пароль не может быть пустым")
-  @Size(min = 6, max = 100, message = "Пароль должен быть от 6 до 100 символов")
+  @NotBlank(message = "password is required")
+  @Size(min = 6, max = 100, message = "password must be between 6 and 100 characters")
   private String password;
 
 }
