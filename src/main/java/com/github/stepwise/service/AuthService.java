@@ -8,6 +8,7 @@ import com.github.stepwise.security.JwtUtil;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import com.github.stepwise.entity.User;
+import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,10 @@ public class AuthService {
   }
 
   public void registerUser(User user) {
-    User newUser = new User(user.getUsername(), encoder.encode(user.getPassword()));
+    if (user.getRole() == null)
+      user.setRole(UserRole.STUDENT);
+
+    User newUser = new User(user.getUsername(), encoder.encode(user.getPassword()), user.getRole());
 
     userRepository.save(newUser);
   }

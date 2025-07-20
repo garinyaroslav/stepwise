@@ -2,9 +2,9 @@
 package com.github.stepwise.security;
 
 import java.util.Collection;
-
+import java.util.Collections;
 import org.springframework.security.core.GrantedAuthority;
-// import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import com.github.stepwise.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +14,9 @@ public class AppUserDetails implements UserDetails {
 
   private final User user;
 
-  // TODO: roles implementation
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    // return user.getRoles().stream().map(role -> new
-    // SimpleGrantedAuthority(role.name())).toList();
-    return null;
+    return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
   }
 
   @Override

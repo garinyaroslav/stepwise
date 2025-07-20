@@ -37,7 +37,7 @@ public class AuthController {
           new MessageResponse("Error: Username is already taken"), HttpStatus.CONFLICT);
     }
 
-    authService.registerUser(new User(user.getUsername(), user.getPassword()));
+    authService.registerUser(new User(user.getUsername(), user.getPassword(), user.getRole()));
 
     return new ResponseEntity<MessageResponse>(new MessageResponse("User registered successfully"),
         HttpStatus.CREATED);

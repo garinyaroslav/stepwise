@@ -3,7 +3,7 @@ package com.github.stepwise.web.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import com.github.stepwise.entity.UserRole;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
@@ -23,4 +23,5 @@ public class UserDto {
   @Size(min = 6, max = 100, message = "password must be between 6 and 100 characters")
   private String password;
 
+  private UserRole role;
 }
