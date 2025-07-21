@@ -16,3 +16,9 @@ spring:
 jwt:
   secret: ${JWT_SECRET:very-very-secure-secret-key-that-is-at-least-32-characters-long}
   expiration: 3600000
+
+minio:
+  url: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: mybucket
