@@ -1,4 +1,4 @@
-package com.github.stepwise.web;
+package com.github.stepwise.exceptionHadlers;
 
 import java.util.HashMap;
 import java.util.Map;

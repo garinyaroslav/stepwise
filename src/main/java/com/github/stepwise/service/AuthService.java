@@ -4,12 +4,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import com.github.stepwise.security.JwtUtil;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.repository.UserRepository;
+import com.github.stepwise.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

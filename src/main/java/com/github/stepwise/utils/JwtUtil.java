@@ -1,4 +1,4 @@
-package com.github.stepwise.security;
+package com.github.stepwise.utils;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

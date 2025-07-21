@@ -1,5 +1,6 @@
 package com.github.stepwise.web.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -11,11 +12,11 @@ public class TestController {
 
   @GetMapping("/all")
   public String allAccess() {
-
     return "Public Content." + " ";
   }
 
   @GetMapping("/user")
+  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN')")
   public String userAccess(@AuthenticationPrincipal UserDetails userDetails) {
     var id = ((AppUserDetails) userDetails).getId();
     return "User Content. User id: " + id;
