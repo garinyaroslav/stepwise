@@ -41,4 +41,8 @@ public class StudyGroup {
 
   // @OneToMany(mappedBy = "group")
   // private List<Project> projects = new ArrayList<>();
+
+  @OneToMany(mappedBy = "group")
+  private List<AcademicWork> academicWorks = new ArrayList<>();
 }
+

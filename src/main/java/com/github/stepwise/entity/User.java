@@ -39,8 +39,8 @@ public class User {
   @Column(nullable = false)
   private UserRole role;
 
-  @ManyToMany(mappedBy = "students")
-  private List<StudyGroup> groups = new ArrayList<>();
+  // @ManyToMany(mappedBy = "students")
+  // private List<StudyGroup> groups = new ArrayList<>();
 
   public User(String username, String password) {
     this.username = username;

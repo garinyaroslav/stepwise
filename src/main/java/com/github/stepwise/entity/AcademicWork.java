@@ -22,8 +22,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "project")
-public class Project {
+@Table(name = "academic_work")
+public class AcademicWork {
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -34,25 +35,25 @@ public class Project {
   @Column(columnDefinition = "TEXT")
   private String description;
 
-  // @Enumerated(EnumType.STRING)
-  // @Column(nullable = false)
-  // private ProjectType type;
-
-  // @ManyToOne
-  // @JoinColumn(name = "group_id", nullable = false)
-  // private StudyGroup group;
-
-  @ManyToOne
-  @JoinColumn(name = "student_id")
-  private User student;
-
-  @ManyToOne
-  @JoinColumn(name = "academic_work_id", nullable = false)
-  private AcademicWork academicWork;
-
-  @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<ExplanatoryNoteItem> items = new ArrayList<>();
-
   @Column(nullable = false)
-  private boolean isApprovedForDefense = false;
+  private String countOfChapters;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private ProjectType type;
+
+  @ManyToOne
+  @JoinColumn(name = "teacher_id")
+  private User teacher;
+
+  @ManyToOne
+  @JoinColumn(name = "group_id", nullable = false)
+  private StudyGroup group;
+
+  @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<AcademicWorkChapter> academicWorkChapters = new ArrayList<>();
+
+  @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Project> projects = new ArrayList<>();
+
 }
