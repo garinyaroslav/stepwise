@@ -43,5 +43,11 @@ public class StudyGroup {
 
   @OneToMany(mappedBy = "group")
   private List<AcademicWork> academicWorks = new ArrayList<>();
+
+  public StudyGroup(String name, List<User> students) {
+    this.name = name;
+    this.students = students;
+  }
+
 }
 

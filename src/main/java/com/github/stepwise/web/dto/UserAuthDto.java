@@ -11,13 +11,15 @@ import jakarta.validation.constraints.Pattern;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDto {
+public class UserAuthDto {
 
   @NotBlank(message = "useranme is required")
   @Size(min = 3, max = 20, message = "useranme must be between 3 and 20 characters")
   @Pattern(regexp = "^[a-zA-Z0-9_]+$",
       message = "useranme can only contain letters, numbers, and underscores")
   private String username;
+
+  private String email;
 
   @NotBlank(message = "password is required")
   @Size(min = 6, max = 100, message = "password must be between 6 and 100 characters")
