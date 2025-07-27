@@ -37,9 +37,9 @@ public class AuthService {
     if (user.getRole() == null)
       user.setRole(UserRole.STUDENT);
 
-    User newUser = new User(user.getUsername(), encoder.encode(user.getPassword()), user.getRole());
+    user.setPassword(encoder.encode(user.getPassword()));
 
-    userRepository.save(newUser);
+    userRepository.save(user);
   }
 
   public String getTokenByPrincipals(User user) {

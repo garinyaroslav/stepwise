@@ -26,7 +26,7 @@ public class StudyGroup {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(nullable = false)
+  @Column(nullable = false, unique = true)
   private String name;
 
   // @ManyToOne
@@ -46,6 +46,11 @@ public class StudyGroup {
 
   public StudyGroup(String name, List<User> students) {
     this.name = name;
+    this.students = students;
+  }
+
+  public StudyGroup(Long id, List<User> students) {
+    this.id = id;
     this.students = students;
   }
 
