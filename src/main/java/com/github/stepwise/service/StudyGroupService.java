@@ -22,7 +22,7 @@ public class StudyGroupService {
   public void create(String name, List<Long> studentsIds) {
     log.info("Create group with name: {}", name);
 
-    var usersList = userRepository.findAllUsersByRole(studentsIds, UserRole.STUDENT);
+    var usersList = userRepository.findByIdInAndRole(studentsIds, UserRole.STUDENT);
 
     if (usersList.isEmpty()) {
       log.warn("No users found with provided IDs: {}", studentsIds);
@@ -41,7 +41,7 @@ public class StudyGroupService {
     StudyGroup studyGroup = studyGroupRepository.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("Group with id " + id + " not found"));
 
-    var newUsersList = userRepository.findAllUsersByRole(newStudentsIds, UserRole.STUDENT);
+    var newUsersList = userRepository.findByIdInAndRole(newStudentsIds, UserRole.STUDENT);
 
     if (newUsersList.isEmpty()) {
       log.warn("No users found with provided IDs: {}", newStudentsIds);

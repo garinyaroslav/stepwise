@@ -28,17 +28,17 @@ public class AuthController {
   }
 
   @PostMapping("/signup")
-  public ResponseEntity<MessageResponse> registerUser(@Valid @RequestBody SignUpDto user) {
-    log.info("Registering user: {}", user.getUsername());
+  public ResponseEntity<MessageResponse> registerUser(@Valid @RequestBody SignUpDto userDto) {
+    log.info("Registering user: {}", userDto.getUsername());
 
-    if (authService.isUsernameTaken(user.getUsername())) {
-      log.warn("username {} is already taken", user.getUsername());
+    if (authService.isUsernameTaken(userDto.getUsername())) {
+      log.warn("username {} is already taken", userDto.getUsername());
       return new ResponseEntity<MessageResponse>(
           new MessageResponse("Error: Username is already taken"), HttpStatus.CONFLICT);
     }
 
-    authService.registerUser(
-        new User(user.getUsername(), user.getPassword(), user.getEmail(), user.getRole()));
+    authService.registerUser(new User(userDto.getUsername(), userDto.getPassword(),
+        userDto.getEmail(), userDto.getRole()));
 
     return new ResponseEntity<MessageResponse>(new MessageResponse("User registered successfully"),
         HttpStatus.CREATED);
