@@ -27,7 +27,10 @@ public class AcademicWorkChapter {
   private String title;
 
   @Column(nullable = false)
-  private String index;
+  private Integer index;
+
+  @Column
+  private String description;
 
   @ManyToOne
   @JoinColumn(name = "academic_work_id", nullable = false)

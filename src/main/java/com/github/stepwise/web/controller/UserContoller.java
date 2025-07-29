@@ -22,7 +22,7 @@ public class UserContoller {
 
   private final UserService userService;
 
-  @GetMapping
+  @GetMapping("/student")
   @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
   public ResponseEntity<PageResponse<UserResponseDto>> getAllStudents(
       @RequestParam(defaultValue = "0") int pageNumber,
