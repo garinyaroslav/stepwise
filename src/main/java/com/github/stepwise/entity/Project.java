@@ -53,4 +53,11 @@ public class Project {
 
   @Column(nullable = false)
   private boolean isApprovedForDefense = false;
+
+  public Project(String title, String description, User student, AcademicWork academicWork) {
+    this.title = title;
+    this.description = description;
+    this.student = student;
+    this.academicWork = academicWork;
+  }
 }

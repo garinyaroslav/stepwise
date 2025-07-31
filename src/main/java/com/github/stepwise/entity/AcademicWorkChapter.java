@@ -27,7 +27,7 @@ public class AcademicWorkChapter {
   private String title;
 
   @Column(nullable = false)
-  private Integer index;
+  private Integer indexOfChapter;
 
   @Column
   private String description;
@@ -35,5 +35,13 @@ public class AcademicWorkChapter {
   @ManyToOne
   @JoinColumn(name = "academic_work_id", nullable = false)
   private AcademicWork academicWork;
+
+  public AcademicWorkChapter(String title, Integer indexOfChapter, String description,
+      AcademicWork academicWork) {
+    this.title = title;
+    this.indexOfChapter = indexOfChapter;
+    this.description = description;
+    this.academicWork = academicWork;
+  }
 
 }

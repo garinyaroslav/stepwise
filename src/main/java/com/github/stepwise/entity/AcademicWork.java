@@ -36,7 +36,7 @@ public class AcademicWork {
   private String description;
 
   @Column(nullable = false)
-  private String countOfChapters;
+  private Integer countOfChapters;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -55,5 +55,12 @@ public class AcademicWork {
 
   @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Project> projects = new ArrayList<>();
+
+  public AcademicWork(String title, String description, ProjectType type, Integer countOfChapters) {
+    this.title = title;
+    this.description = description;
+    this.type = type;
+    this.countOfChapters = countOfChapters;
+  }
 
 }
