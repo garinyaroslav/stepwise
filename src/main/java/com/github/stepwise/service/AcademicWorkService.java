@@ -57,4 +57,21 @@ public class AcademicWorkService {
     projectRepository.saveAll(projects);
   }
 
+  public List<AcademicWork> getByGroupId(Long groupId) {
+    log.info("Getching works for group with id: {}", groupId);
+
+    return academicWorkRepository.findByGroupId(groupId);
+  }
+
+  public AcademicWork getById(Long groupId) {
+    log.info("Getching work with id: {}", groupId);
+
+    AcademicWork work = academicWorkRepository.findById(groupId)
+        .orElseThrow(() -> new IllegalArgumentException("Work not found with id: " + groupId));
+
+    return work;
+  }
+
+
+
 }

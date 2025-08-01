@@ -41,22 +41,5 @@ public class CreateWorkDto {
   @NotEmpty(message = "chapters cannot be empty")
   private List<WorkChapterDto> chapters = new ArrayList<>();
 
-  @Data
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class WorkChapterDto {
 
-    @NotNull(message = "index is required")
-    @Positive(message = "index must be positive")
-    private Integer index;
-
-    @NotBlank(message = "title must not be blank")
-    @Size(min = 3, max = 50, message = "title must be between 3 and 50 characters")
-    private String title;
-
-    @Size(min = 3, max = 300,
-        message = "description must be between 3 and 300 characters if provided")
-    private String description;
-
-  }
 }

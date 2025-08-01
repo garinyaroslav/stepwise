@@ -29,6 +29,9 @@ public class Profile {
   private String lastName;
 
   @Column
+  private String middleName;
+
+  @Column
   private String phoneNumber;
 
   @Column
