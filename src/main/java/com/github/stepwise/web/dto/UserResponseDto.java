@@ -29,4 +29,9 @@ public class UserResponseDto {
 
   private String address;
 
+  public UserResponseDto(String username, String email) {
+    this.username = username;
+    this.email = email;
+  }
+
 }

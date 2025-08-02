@@ -1,0 +1,19 @@
+package com.github.stepwise.web.controller;
+
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@RestController
+@RequestMapping("/api/project")
+@RequiredArgsConstructor
+@Slf4j
+public class ProjectController {
+
+  // @PutMapping
+  // public @
+
+}
+

@@ -35,7 +35,7 @@ public class StudyGroupService {
   }
 
   @Transactional
-  public void update(Long id, List<Long> newStudentsIds) {
+  public StudyGroup update(Long id, List<Long> newStudentsIds) {
     log.info("Update group with id: {}", id);
 
     StudyGroup studyGroup = studyGroupRepository.findById(id)
@@ -49,8 +49,10 @@ public class StudyGroupService {
     }
 
     studyGroup.setStudents(newUsersList);
-    studyGroupRepository.save(studyGroup);
+    StudyGroup updatedStudyGroup = studyGroupRepository.save(studyGroup);
 
     log.info("Group updated with id: {}", id);
+
+    return updatedStudyGroup;
   }
 }

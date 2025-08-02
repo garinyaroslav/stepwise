@@ -34,7 +34,7 @@ public class StudyGroup {
   // @JoinColumn(name = "teacher_id")
   // private User teacher;
 
-  @ManyToMany
+  @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(name = "group_student", joinColumns = @JoinColumn(name = "group_id"),
       inverseJoinColumns = @JoinColumn(name = "student_id"))
   private List<User> students = new ArrayList<>();

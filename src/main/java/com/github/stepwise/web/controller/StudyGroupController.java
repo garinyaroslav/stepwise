@@ -9,9 +9,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.service.StudyGroupService;
 import com.github.stepwise.web.dto.CreateGroupDto;
 import com.github.stepwise.web.dto.UpdateGroupDto;
+import com.github.stepwise.web.dto.StudyGroupResponseDto;
+import com.github.stepwise.web.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,12 +38,19 @@ public class StudyGroupController {
 
   @PutMapping
   @PreAuthorize("hasRole('ROLE_ADMIN')")
-  public ResponseEntity<Void> updateGroup(@Valid @RequestBody UpdateGroupDto groupDto) {
+  public ResponseEntity<StudyGroupResponseDto> updateGroup(
+      @Valid @RequestBody UpdateGroupDto groupDto) {
     log.info("Updating group with id: {}", groupDto.getId());
 
-    studyGroupService.update(groupDto.getId(), groupDto.getStudentIds());
+    StudyGroup updatedStudyGroup =
+        studyGroupService.update(groupDto.getId(), groupDto.getStudentIds());
 
-    return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+    StudyGroupResponseDto updatedStudyGroupDto = new StudyGroupResponseDto(
+        updatedStudyGroup.getName(), updatedStudyGroup.getStudents().stream()
+            .map(user -> new UserResponseDto(user.getUsername(), user.getEmail())).toList());
+
+
+    return new ResponseEntity<StudyGroupResponseDto>(updatedStudyGroupDto, HttpStatus.OK);
   }
 
 }
