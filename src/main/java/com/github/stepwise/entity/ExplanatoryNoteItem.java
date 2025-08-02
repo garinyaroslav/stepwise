@@ -21,22 +21,20 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Table(name = "explanatory_note_item")
 public class ExplanatoryNoteItem {
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
   @Column(nullable = false)
-  private String title;
-
-  @Column
-  private int orderNumber;
+  private Integer orderNumber;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private ItemStatus status = ItemStatus.DRAFT;
 
-  @Column
-  private String filePath;
+  @Column(nullable = false)
+  private String fileName;
 
   @Column
   private LocalDateTime submittedAt;
@@ -47,4 +45,5 @@ public class ExplanatoryNoteItem {
   @ManyToOne
   @JoinColumn(name = "project_id", nullable = false)
   private Project project;
+
 }

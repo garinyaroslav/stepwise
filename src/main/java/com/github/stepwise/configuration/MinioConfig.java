@@ -1,5 +1,6 @@
 package com.github.stepwise.configuration;
 
+import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -16,7 +17,13 @@ public class MinioConfig {
   private String bucketName;
 
   @Bean
-  public MinioClient minioClient() {
-    return MinioClient.builder().endpoint(url).credentials(accessKey, secretKey).build();
+  public MinioClient minioClient() throws Exception {
+    MinioClient minioClient =
+        MinioClient.builder().endpoint(url).credentials(accessKey, secretKey).build();
+
+    minioClient.makeBucket(MakeBucketArgs.builder().bucket("works").build());
+
+    return minioClient;
+
   }
 }
