@@ -30,17 +30,10 @@ public class StudyGroup {
   @Column(nullable = false, unique = true)
   private String name;
 
-  // @ManyToOne
-  // @JoinColumn(name = "teacher_id")
-  // private User teacher;
-
   @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(name = "group_student", joinColumns = @JoinColumn(name = "group_id"),
       inverseJoinColumns = @JoinColumn(name = "student_id"))
   private List<User> students = new ArrayList<>();
-
-  // @OneToMany(mappedBy = "group")
-  // private List<Project> projects = new ArrayList<>();
 
   @OneToMany(mappedBy = "group")
   private List<AcademicWork> academicWorks = new ArrayList<>();

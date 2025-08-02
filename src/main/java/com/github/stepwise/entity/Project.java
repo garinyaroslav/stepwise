@@ -32,14 +32,6 @@ public class Project {
   @Column(columnDefinition = "TEXT")
   private String description;
 
-  // @Enumerated(EnumType.STRING)
-  // @Column(nullable = false)
-  // private ProjectType type;
-
-  // @ManyToOne
-  // @JoinColumn(name = "group_id", nullable = false)
-  // private StudyGroup group;
-
   @ManyToOne
   @JoinColumn(name = "student_id")
   private User student;
@@ -53,6 +45,12 @@ public class Project {
 
   @Column(nullable = false)
   private boolean isApprovedForDefense = false;
+
+  public Project(Long id, String title, String description) {
+    this.id = id;
+    this.title = title;
+    this.description = description;
+  }
 
   public Project(String title, String description, User student, AcademicWork academicWork) {
     this.title = title;
