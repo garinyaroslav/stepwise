@@ -23,20 +23,17 @@ public class MinioService {
   @PostConstruct
   public void init() {
     try {
-      boolean bucketExists = minioClient
-          .bucketExists(BucketExistsArgs.builder().bucket(minioConfig.getBucketName()).build());
-      if (!bucketExists) {
-        minioClient
-            .makeBucket(MakeBucketArgs.builder().bucket(minioConfig.getBucketName()).build());
-      }
+      for (String bucketName : minioConfig.getBucketNames())
+        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build()))
+          minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
     } catch (Exception e) {
-      throw new RuntimeException("Ошибка при создании бакета: " + e.getMessage());
+      throw new RuntimeException("Buckets creating exception: " + e.getMessage());
     }
   }
 
   public void uploadFile(MultipartFile file, String fileName) throws Exception {
     try {
-      minioClient.putObject(PutObjectArgs.builder().bucket(minioConfig.getBucketName())
+      minioClient.putObject(PutObjectArgs.builder().bucket(minioConfig.getBucketNames().get(0))
           .object(fileName).stream(file.getInputStream(), file.getSize(), -1)
           .contentType(file.getContentType()).build());
     } catch (MinioException e) {
@@ -46,8 +43,8 @@ public class MinioService {
 
   public InputStream downloadFile(String fileName) throws Exception {
     try {
-      return minioClient.getObject(
-          GetObjectArgs.builder().bucket(minioConfig.getBucketName()).object(fileName).build());
+      return minioClient.getObject(GetObjectArgs.builder()
+          .bucket(minioConfig.getBucketNames().get(0)).object(fileName).build());
     } catch (MinioException e) {
       throw new Exception("Error with file downloading" + e.getMessage());
     }
