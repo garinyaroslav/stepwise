@@ -1,6 +1,12 @@
 spring:
   application:
     name: stepwise
+  servlet:
+    multipart:
+      max-file-size: 2MB
+  config:
+    import:
+      - file-upload.yml
   datasource:
     url: jdbc:postgresql://localhost:5432/stepwise_db
     username: admin

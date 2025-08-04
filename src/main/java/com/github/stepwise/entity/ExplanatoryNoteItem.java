@@ -36,14 +36,34 @@ public class ExplanatoryNoteItem {
   @Column(nullable = false)
   private String fileName;
 
+  @Column(columnDefinition = "TEXT")
+  private String teacherComment;
+
+  @Column(nullable = false)
+  private LocalDateTime draftedAt;
+
   @Column
   private LocalDateTime submittedAt;
 
   @Column
   private LocalDateTime approvedAt;
 
+  @Column
+  private LocalDateTime rejectedAt;
+
   @ManyToOne
   @JoinColumn(name = "project_id", nullable = false)
   private Project project;
+
+  public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, String fileName,
+      LocalDateTime draftedAt, Project project) {
+    this.orderNumber = orderNumber;
+    this.status = status;
+    this.fileName = fileName;
+    this.draftedAt = draftedAt;
+    this.project = project;
+  }
+
+
 
 }

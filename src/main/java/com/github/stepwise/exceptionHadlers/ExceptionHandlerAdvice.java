@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import com.github.stepwise.web.dto.MessageResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,6 +28,12 @@ public class ExceptionHandlerAdvice {
     return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
   }
 
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  public ResponseEntity<String> handleMaxSizeException(MaxUploadSizeExceededException exc) {
+    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+        .body("File size exceeds the maximum limit of 2MB!");
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex) {
     return new ResponseEntity<>(new MessageResponse("Invalid input: " + ex.getMessage()),
@@ -44,5 +51,7 @@ public class ExceptionHandlerAdvice {
     return new ResponseEntity<>(new MessageResponse("Unexpected error: " + ex.getMessage()),
         HttpStatus.INTERNAL_SERVER_ERROR);
   }
+
+
 
 }

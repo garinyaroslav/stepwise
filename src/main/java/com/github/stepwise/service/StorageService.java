@@ -1,4 +1,4 @@
-package com.github.stepwise.utils;
+package com.github.stepwise.service;
 
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
@@ -15,7 +15,7 @@ import java.io.InputStream;
 
 @Service
 @RequiredArgsConstructor
-public class MinioService {
+public class StorageService {
   private final MinioClient minioClient;
 
   private final MinioConfig minioConfig;
@@ -31,22 +31,25 @@ public class MinioService {
     }
   }
 
-  public void uploadFile(MultipartFile file, String fileName) throws Exception {
-    try {
-      minioClient.putObject(PutObjectArgs.builder().bucket(minioConfig.getBucketNames().get(0))
-          .object(fileName).stream(file.getInputStream(), file.getSize(), -1)
-          .contentType(file.getContentType()).build());
-    } catch (MinioException e) {
-      throw new Exception("Error with file uploading" + e.getMessage());
-    }
+  public void uploadExplanatoryFile(Long studentId, Long projectId, Long itemId, MultipartFile file)
+      throws Exception {
+    String worksBucketName = minioConfig.getBucketNames().get(0);
+
+    String objectName =
+        String.format("%d/%d/%d/%s", studentId, projectId, itemId, file.getOriginalFilename());
+
+    minioClient.putObject(PutObjectArgs.builder().bucket(worksBucketName).object(objectName)
+        .stream(file.getInputStream(), file.getSize(), -1).contentType(file.getContentType())
+        .build());
   }
 
-  public InputStream downloadFile(String fileName) throws Exception {
-    try {
-      return minioClient.getObject(GetObjectArgs.builder()
-          .bucket(minioConfig.getBucketNames().get(0)).object(fileName).build());
-    } catch (MinioException e) {
-      throw new Exception("Error with file downloading" + e.getMessage());
-    }
+  public InputStream downloadExplanatoryFile(Long studentId, Long projectId, Long itemId,
+      String filename) throws Exception {
+    String worksBucketName = minioConfig.getBucketNames().get(0);
+
+    String objectName = String.format("%d/%d/%d/%s", studentId, projectId, itemId, filename);
+
+    return minioClient
+        .getObject(GetObjectArgs.builder().bucket(worksBucketName).object(objectName).build());
   }
 }
