@@ -6,15 +6,18 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.User;
+import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.ProjectService;
 import com.github.stepwise.web.dto.ExplanatoryNoteItemResponseDto;
 import com.github.stepwise.web.dto.ProjectResponseDto;
@@ -44,10 +47,24 @@ public class ProjectController {
         updatedProject.getTitle(), updatedProject.getDescription()), HttpStatus.OK);
   }
 
-  @GetMapping
+  @GetMapping("/{projectId}")
   @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_ADMIN')")
-  public ResponseEntity<ProjectResponseDto> getStudentProject(@RequestParam Long projectId) {
+  public ResponseEntity<ProjectResponseDto> getStudentProject(@PathVariable Long projectId,
+      @AuthenticationPrincipal UserDetails userDetails) {
     log.info("Fetching project, project id: {}", projectId);
+
+    AppUserDetails appUserDetails = (AppUserDetails) userDetails;
+
+    if (appUserDetails.getRole() == UserRole.STUDENT) {
+      if (projectService.isProjectBelongsToStudent(projectId, appUserDetails.getId()))
+        log.info("Project with id: {} belongs to student with id: {}", projectId, appUserDetails.getId());
+      else {
+        log.error("Project with id: {} does not belong to student with id: {}", projectId, appUserDetails.getId());
+        throw new IllegalArgumentException(
+            "Project not found with id: " + projectId + " for student with id: " + appUserDetails.getId());
+      }
+
+    }
 
     Project project = projectService.getByProjectId(projectId);
 

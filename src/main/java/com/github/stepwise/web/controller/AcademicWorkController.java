@@ -37,9 +37,10 @@ public class AcademicWorkController {
     var newAcademicWork = new AcademicWork(workDto.getTitle(), workDto.getDescription(),
         workDto.getType(), workDto.getChapters().size());
 
-    List<AcademicWorkChapter> chapters =
-        workDto.getChapters().stream().map(dto -> new AcademicWorkChapter(dto.getTitle(),
-            dto.getIndex(), dto.getDescription(), newAcademicWork)).toList();
+    List<AcademicWorkChapter> chapters = workDto.getChapters().stream()
+        .map(dto -> new AcademicWorkChapter(dto.getTitle(),
+            dto.getIndex(), dto.getDescription(), newAcademicWork))
+        .toList();
 
     academicWorkService.create(newAcademicWork, chapters, workDto.getGroupId(),
         workDto.getTeacherId());
@@ -90,7 +91,5 @@ public class AcademicWorkController {
 
     return new ResponseEntity<>(workDto, HttpStatus.OK);
   }
-
-
 
 }

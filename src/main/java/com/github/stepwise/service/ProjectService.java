@@ -44,4 +44,10 @@ public class ProjectService {
     return projectRepository.findAllByAcademicWorkId(workId);
   }
 
+  public boolean isProjectBelongsToStudent(Long projectId, Long studentId) {
+    log.info("Checking if project with id: {} belongs to student with id: {}", projectId, studentId);
+
+    return projectRepository.existsByIdAndStudentId(projectId, studentId);
+  }
+
 }

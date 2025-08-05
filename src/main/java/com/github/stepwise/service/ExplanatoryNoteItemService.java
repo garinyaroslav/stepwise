@@ -53,7 +53,7 @@ public class ExplanatoryNoteItemService {
     if (items.size() > 0 && items.getLast().getStatus() == ItemStatus.SUBMITTED)
       throw new IllegalArgumentException("Cannot submit more than one item at a time");
 
-    ExplanatoryNoteItem newItem = new ExplanatoryNoteItem(items.size() + 1, ItemStatus.DRAFT,
+    ExplanatoryNoteItem newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT,
         file.getOriginalFilename(), LocalDateTime.now(), project);
 
     items.add(newItem);
@@ -74,8 +74,7 @@ public class ExplanatoryNoteItemService {
     ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
         () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
 
-    InputStream inputStream =
-        storageService.downloadExplanatoryFile(userId, projectId, itemId, item.getFileName());
+    InputStream inputStream = storageService.downloadExplanatoryFile(userId, projectId, itemId, item.getFileName());
 
     if (inputStream == null) {
       log.error("File not found for userId: {}, projectId; {}, itemId: {}", userId, projectId,
@@ -85,7 +84,5 @@ public class ExplanatoryNoteItemService {
 
     return inputStream;
   }
-
-
 
 }
