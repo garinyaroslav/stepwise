@@ -1,5 +1,7 @@
 package com.github.stepwise.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.repository.ProjectRepository;
@@ -29,5 +31,17 @@ public class ProjectService {
     return updatedProject;
   }
 
+  public Project getByProjectId(Long projectId) {
+    log.info("Fetching project id: {}", projectId);
+
+    return projectRepository.findById(projectId).orElseThrow(() -> new IllegalArgumentException(
+        "Project not found project id: " + projectId));
+  }
+
+  public List<Project> getAllByWorkId(Long workId) {
+    log.info("Fetching all projects for work id: {}", workId);
+
+    return projectRepository.findAllByAcademicWorkId(workId);
+  }
 
 }
