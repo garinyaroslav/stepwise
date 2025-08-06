@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +43,25 @@ public class ExplanatoryNoteItemController {
     return new ResponseEntity<>(HttpStatus.CREATED);
   }
 
+  @PostMapping("/submit/{id}")
+  @PreAuthorize("hasRole('ROLE_STUDENT')")
+  public ResponseEntity<Void> createExplanatoryNoteItem(@PathVariable Long id,
+      @AuthenticationPrincipal UserDetails userDetails)
+      throws Exception {
+    Long currentStudentId = ((AppUserDetails) userDetails).getId();
+
+    log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentStudentId);
+
+    if (!explanatoryNoteItemService.isItemBelongsToStudent(id, currentStudentId)) {
+      log.error("Unauthorized access attempt by userId: {}, itemId: {}", currentStudentId, id);
+      throw new IllegalArgumentException("Unauthorized access to item submission by userId: " + currentStudentId);
+    }
+
+    //
+
+    return new ResponseEntity<>(HttpStatus.OK);
+  }
+
   @GetMapping("/file")
   @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
   public ResponseEntity<InputStreamResource> downloadItemFile(
@@ -64,7 +84,5 @@ public class ExplanatoryNoteItemController {
 
     return new ResponseEntity<>(new InputStreamResource(inputStream), HttpStatus.OK);
   }
-
-
 
 }

@@ -85,4 +85,9 @@ public class ExplanatoryNoteItemService {
     return inputStream;
   }
 
+  public boolean isItemBelongsToStudent(Long itemId, Long studentId) {
+
+    return false;
+  }
+
 }
