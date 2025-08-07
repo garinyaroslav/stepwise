@@ -57,11 +57,13 @@ public class ProjectController {
 
     if (appUserDetails.getRole() == UserRole.STUDENT) {
       if (projectService.isProjectBelongsToStudent(projectId, appUserDetails.getId()))
-        log.info("Project with id: {} belongs to student with id: {}", projectId, appUserDetails.getId());
+        log.info("Project with id: {} belongs to student with id: {}", projectId,
+            appUserDetails.getId());
       else {
-        log.error("Project with id: {} does not belong to student with id: {}", projectId, appUserDetails.getId());
-        throw new IllegalArgumentException(
-            "Project not found with id: " + projectId + " for student with id: " + appUserDetails.getId());
+        log.error("Project with id: {} does not belong to student with id: {}", projectId,
+            appUserDetails.getId());
+        throw new IllegalArgumentException("Project not found with id: " + projectId
+            + " for student with id: " + appUserDetails.getId());
       }
 
     }
@@ -70,13 +72,14 @@ public class ProjectController {
 
     User student = project.getStudent();
 
-    UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(), student.getEmail(),
-        student.getProfile().getFirstName(), student.getProfile().getLastName(), student.getProfile().getMiddleName());
+    UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
+        student.getEmail(), student.getProfile().getFirstName(), student.getProfile().getLastName(),
+        student.getProfile().getMiddleName());
 
     List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
-        .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(), item.getStatus(),
-            item.getFileName(), item.getTeacherComment(), item.getDraftedAt(), item.getSubmittedAt(),
-            item.getApprovedAt(), item.getRejectedAt()))
+        .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
+            item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
+            item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
         .toList();
 
     ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
@@ -86,25 +89,33 @@ public class ProjectController {
   }
 
   @GetMapping("/work/{workId}")
-  @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN')")
-  public ResponseEntity<List<ProjectResponseDto>> getProjectsByWork(@PathVariable Long workId) {
+  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_ADMIN')")
+  public ResponseEntity<List<ProjectResponseDto>> getProjectsByWork(@PathVariable Long workId,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    AppUserDetails appUserDetails = (AppUserDetails) userDetails;
+
     log.info("Fetching projects by work id: {}", workId);
 
-    List<Project> projects = projectService.getAllByWorkId(workId);
+    List<Project> projects;
+
+    if (appUserDetails.getRole() == UserRole.STUDENT)
+      projects = projectService.getAllByWorkIdAndStudentId(workId, appUserDetails.getId());
+    else
+      projects = projectService.getAllByWorkId(workId);
 
     List<ProjectResponseDto> projectDtos = new ArrayList<>(35);
 
     for (Project project : projects) {
       User student = project.getStudent();
 
-      UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(), student.getEmail(),
-          student.getProfile().getFirstName(), student.getProfile().getLastName(),
-          student.getProfile().getMiddleName());
+      UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
+          student.getEmail(), student.getProfile().getFirstName(),
+          student.getProfile().getLastName(), student.getProfile().getMiddleName());
 
       List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
-          .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(), item.getStatus(),
-              item.getFileName(), item.getTeacherComment(), item.getDraftedAt(), item.getSubmittedAt(),
-              item.getApprovedAt(), item.getRejectedAt()))
+          .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
+              item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
+              item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
           .toList();
 
       ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),

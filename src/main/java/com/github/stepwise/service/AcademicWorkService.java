@@ -72,6 +72,15 @@ public class AcademicWorkService {
     return work;
   }
 
+  public List<AcademicWork> getByStudentId(Long studentId) {
+    log.info("Fetching works for student with id: {}", studentId);
+
+    userRepository.findById(studentId)
+        .orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + studentId));
+
+    return academicWorkRepository.findByStudentId(studentId);
+  }
+
 
 
 }

@@ -34,8 +34,8 @@ public class ProjectService {
   public Project getByProjectId(Long projectId) {
     log.info("Fetching project id: {}", projectId);
 
-    return projectRepository.findById(projectId).orElseThrow(() -> new IllegalArgumentException(
-        "Project not found project id: " + projectId));
+    return projectRepository.findById(projectId).orElseThrow(
+        () -> new IllegalArgumentException("Project not found project id: " + projectId));
   }
 
   public List<Project> getAllByWorkId(Long workId) {
@@ -44,10 +44,18 @@ public class ProjectService {
     return projectRepository.findAllByAcademicWorkId(workId);
   }
 
+  public List<Project> getAllByWorkIdAndStudentId(Long workId, Long studentId) {
+    log.info("Fetching all projects for work id: {}, and student id: {}", workId, studentId);
+
+    return projectRepository.findAllByAcademicWorkIdAndStudentId(workId, studentId);
+  }
+
   public boolean isProjectBelongsToStudent(Long projectId, Long studentId) {
-    log.info("Checking if project with id: {} belongs to student with id: {}", projectId, studentId);
+    log.info("Checking if project with id: {} belongs to student with id: {}", projectId,
+        studentId);
 
     return projectRepository.existsByIdAndStudentId(projectId, studentId);
   }
+
 
 }

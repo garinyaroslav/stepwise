@@ -9,6 +9,8 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
   List<Project> findAllByAcademicWorkId(Long academicWorkId);
 
+  List<Project> findAllByAcademicWorkIdAndStudentId(Long academicWorkId, Long studentId);
+
   boolean existsByIdAndStudentId(Long projectId, Long studentId);
 
 }

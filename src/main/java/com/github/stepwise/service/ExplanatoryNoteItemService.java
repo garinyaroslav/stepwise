@@ -70,11 +70,32 @@ public class ExplanatoryNoteItemService {
     storageService.uploadExplanatoryFile(userId, projectId, newExplanatoryNoteItemId, file);
   }
 
+  public void submitItem(Long itemId) {
+    log.info("Submitting explanatory note item with id: {}", itemId);
+
+    ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
+        () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+
+    if (item.getStatus() != ItemStatus.DRAFT) {
+      log.error("Item with id: {} is not in DRAFT status, current status: {}", itemId,
+          item.getStatus());
+      throw new IllegalArgumentException("Item with id: " + itemId + " is not in DRAFT status");
+    }
+
+    item.setStatus(ItemStatus.SUBMITTED);
+    item.setSubmittedAt(LocalDateTime.now());
+
+    explanatoryNoteRepository.save(item);
+
+    log.info("Explanatory note item with id: {} submitted successfully", itemId);
+  }
+
   public InputStream getItemFile(Long userId, Long projectId, Long itemId) throws Exception {
     ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
         () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
 
-    InputStream inputStream = storageService.downloadExplanatoryFile(userId, projectId, itemId, item.getFileName());
+    InputStream inputStream =
+        storageService.downloadExplanatoryFile(userId, projectId, itemId, item.getFileName());
 
     if (inputStream == null) {
       log.error("File not found for userId: {}, projectId; {}, itemId: {}", userId, projectId,
@@ -86,8 +107,9 @@ public class ExplanatoryNoteItemService {
   }
 
   public boolean isItemBelongsToStudent(Long itemId, Long studentId) {
+    log.info("Checking if item with id: {} belongs to student with id: {}", itemId, studentId);
 
-    return false;
+    return explanatoryNoteRepository.existsByIdAndUserId(itemId, studentId);
   }
 
 }

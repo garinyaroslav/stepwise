@@ -46,18 +46,18 @@ public class ExplanatoryNoteItemController {
   @PostMapping("/submit/{id}")
   @PreAuthorize("hasRole('ROLE_STUDENT')")
   public ResponseEntity<Void> createExplanatoryNoteItem(@PathVariable Long id,
-      @AuthenticationPrincipal UserDetails userDetails)
-      throws Exception {
+      @AuthenticationPrincipal UserDetails userDetails) throws Exception {
     Long currentStudentId = ((AppUserDetails) userDetails).getId();
 
     log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentStudentId);
 
     if (!explanatoryNoteItemService.isItemBelongsToStudent(id, currentStudentId)) {
       log.error("Unauthorized access attempt by userId: {}, itemId: {}", currentStudentId, id);
-      throw new IllegalArgumentException("Unauthorized access to item submission by userId: " + currentStudentId);
+      throw new IllegalArgumentException(
+          "Unauthorized access to item submission by userId: " + currentStudentId);
     }
 
-    //
+    explanatoryNoteItemService.submitItem(id);
 
     return new ResponseEntity<>(HttpStatus.OK);
   }
