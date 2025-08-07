@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
@@ -89,7 +90,7 @@ public class ProjectController {
   }
 
   @GetMapping("/work/{workId}")
-  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_ADMIN')")
+  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN')")
   public ResponseEntity<List<ProjectResponseDto>> getProjectsByWork(@PathVariable Long workId,
       @AuthenticationPrincipal UserDetails userDetails) {
     AppUserDetails appUserDetails = (AppUserDetails) userDetails;
@@ -113,6 +114,39 @@ public class ProjectController {
           student.getProfile().getLastName(), student.getProfile().getMiddleName());
 
       List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
+          .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
+              item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
+              item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
+          .toList();
+
+      ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
+          project.getDescription(), owner, items, project.isApprovedForDefense());
+
+      projectDtos.add(projectDto);
+    }
+
+    return new ResponseEntity<>(projectDtos, HttpStatus.OK);
+  }
+
+  @GetMapping("/work/{workId}/teacher")
+  @PreAuthorize("hasRole('ROLE_TEACHER')")
+  public ResponseEntity<List<ProjectResponseDto>> getProjectsByWorkForTeacher(
+      @PathVariable Long workId) {
+    log.info("Fetching projects by work id: {} for teacher", workId);
+
+    List<Project> projects = projectService.getAllByWorkId(workId);
+
+    List<ProjectResponseDto> projectDtos = new ArrayList<>(35);
+
+    for (Project project : projects) {
+      User student = project.getStudent();
+
+      UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
+          student.getEmail(), student.getProfile().getFirstName(),
+          student.getProfile().getLastName(), student.getProfile().getMiddleName());
+
+      List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
+          .filter(item -> item.getStatus() != ItemStatus.DRAFT)
           .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
               item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
               item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
