@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,6 +29,12 @@ public class ExceptionHandlerAdvice {
     return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
   }
 
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<?> handleAccessDeniedException(AccessDeniedException ex) {
+    return new ResponseEntity<>(new MessageResponse("Access Denied: Insufficient permissions"),
+        HttpStatus.FORBIDDEN);
+  }
+
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   public ResponseEntity<String> handleMaxSizeException(MaxUploadSizeExceededException exc) {
     return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
@@ -45,6 +52,7 @@ public class ExceptionHandlerAdvice {
     return new ResponseEntity<>(new MessageResponse("Internal error: " + ex.getMessage()),
         HttpStatus.INTERNAL_SERVER_ERROR);
   }
+
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<?> handleGlobalException(Exception ex) {

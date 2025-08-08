@@ -45,7 +45,7 @@ public class ExplanatoryNoteItemController {
 
   @PostMapping("/submit/{id}")
   @PreAuthorize("hasRole('ROLE_STUDENT')")
-  public ResponseEntity<Void> createExplanatoryNoteItem(@PathVariable Long id,
+  public ResponseEntity<Void> submitExplanatoryNoteItem(@PathVariable Long id,
       @AuthenticationPrincipal UserDetails userDetails) throws Exception {
     Long currentStudentId = ((AppUserDetails) userDetails).getId();
 
@@ -58,6 +58,46 @@ public class ExplanatoryNoteItemController {
     }
 
     explanatoryNoteItemService.submitItem(id);
+
+    return new ResponseEntity<>(HttpStatus.OK);
+  }
+
+  @PostMapping("/approve/{id}")
+  @PreAuthorize("hasRole('ROLE_TEACHER')")
+  public ResponseEntity<Void> approveExplanatoryNoteItem(@PathVariable Long id,
+      @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+    Long currentTeacherId = ((AppUserDetails) userDetails).getId();
+
+    log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
+
+    if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
+      log.error("Cannot approve item with id: {}, by teacher with id: {}", id, currentTeacherId);
+      throw new IllegalArgumentException(
+          "Cannot approve item with id: " + id + " by teacher with id: " + currentTeacherId);
+    }
+
+    explanatoryNoteItemService.approveItem(id);
+
+    return new ResponseEntity<>(HttpStatus.OK);
+  }
+
+
+  // TODO: add teacher comment
+  @PostMapping("/reject/{id}")
+  @PreAuthorize("hasRole('ROLE_TEACHER')")
+  public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id,
+      @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+    Long currentTeacherId = ((AppUserDetails) userDetails).getId();
+
+    log.info("Rejecting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
+
+    if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
+      log.error("Cannot reject item with id: {}, by teacher with id: {}", id, currentTeacherId);
+      throw new IllegalArgumentException(
+          "Cannot reject item with id: " + id + " by teacher with id: " + currentTeacherId);
+    }
+
+    explanatoryNoteItemService.rejectItem(id);
 
     return new ResponseEntity<>(HttpStatus.OK);
   }

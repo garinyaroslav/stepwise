@@ -12,7 +12,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import com.github.stepwise.exceptionHadlers.AccessDeniedHandlerImpl;
 import com.github.stepwise.security.AuthEntryPointJwt;
 import com.github.stepwise.security.AuthTokenFilter;
 import com.github.stepwise.security.UserDetailsServiceImpl;
@@ -24,8 +23,6 @@ public class WebSecurityConfig {
   UserDetailsServiceImpl userDetailsService;
   @Autowired
   private AuthEntryPointJwt unauthorizedHandler;
-  @Autowired
-  private AccessDeniedHandlerImpl accessDeniedHandler;
 
   @Bean
   public AuthTokenFilter authenticationJwtTokenFilter() {
@@ -46,8 +43,8 @@ public class WebSecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.disable()).cors(cors -> cors.disable())
-        .exceptionHandling(exceptionHandling -> exceptionHandling
-            .authenticationEntryPoint(unauthorizedHandler).accessDeniedHandler(accessDeniedHandler))
+        .exceptionHandling(
+            exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
         .sessionManagement(sessionManagement -> sessionManagement
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authorizeRequests -> authorizeRequests

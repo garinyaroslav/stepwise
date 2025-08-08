@@ -50,8 +50,9 @@ public class ExplanatoryNoteItemService {
     if (items.size() >= (int) project.getAcademicWork().getCountOfChapters())
       throw new IllegalArgumentException("Project already has all items submitted");
 
-    if (items.size() > 0 && items.getLast().getStatus() == ItemStatus.SUBMITTED)
-      throw new IllegalArgumentException("Cannot submit more than one item at a time");
+    if (items.size() > 0 && (items.getLast().getStatus() == ItemStatus.SUBMITTED
+        || items.getLast().getStatus() == ItemStatus.DRAFT))
+      throw new IllegalArgumentException("Cannot submit or draft more than one item at a time");
 
     ExplanatoryNoteItem newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT,
         file.getOriginalFilename(), LocalDateTime.now(), project);
@@ -90,6 +91,46 @@ public class ExplanatoryNoteItemService {
     log.info("Explanatory note item with id: {} submitted successfully", itemId);
   }
 
+  public void approveItem(Long itemId) {
+    log.info("Approving explanatory note item with id: {}", itemId);
+
+    ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
+        () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+
+    if (item.getStatus() != ItemStatus.SUBMITTED) {
+      log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
+          item.getStatus());
+      throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
+    }
+
+    item.setStatus(ItemStatus.APPROVED);
+    item.setApprovedAt(LocalDateTime.now());
+
+    explanatoryNoteRepository.save(item);
+
+    log.info("Explanatory note item with id: {} approved successfully", itemId);
+  }
+
+  public void rejectItem(Long itemId) {
+    log.info("Rejecting explanatory note item with id: {}", itemId);
+
+    ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
+        () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+
+    if (item.getStatus() != ItemStatus.SUBMITTED) {
+      log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
+          item.getStatus());
+      throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
+    }
+
+    item.setStatus(ItemStatus.REJECTED);
+    item.setRejectedAt(LocalDateTime.now());
+
+    explanatoryNoteRepository.save(item);
+
+    log.info("Explanatory note item with id: {} rejected successfully", itemId);
+  }
+
   public InputStream getItemFile(Long userId, Long projectId, Long itemId) throws Exception {
     ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
         () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
@@ -110,6 +151,12 @@ public class ExplanatoryNoteItemService {
     log.info("Checking if item with id: {} belongs to student with id: {}", itemId, studentId);
 
     return explanatoryNoteRepository.existsByIdAndUserId(itemId, studentId);
+  }
+
+  public boolean isItemBelongsToTeacher(Long itemId, Long teacherId) {
+    log.info("Checking if item with id: {}, belongs to teacher with id: {}", itemId, teacherId);
+
+    return explanatoryNoteRepository.existsByIdAndTeacherId(itemId, teacherId);
   }
 
 }
