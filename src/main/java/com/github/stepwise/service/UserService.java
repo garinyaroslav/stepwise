@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.github.stepwise.entity.Profile;
 import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.UserRepository;
@@ -38,6 +39,29 @@ public class UserService {
     List<Long> studnetIds = group.getStudents().stream().map(User::getId).toList();
 
     return userRepository.findAllById(studnetIds);
+  }
+
+  public User updateProfile(Long userId, String firstName, String lastName, String middleName,
+      String phoneNumber, String address) {
+    log.info("Updating profile for userId: {}", userId);
+
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+    Profile p = user.getProfile();
+
+    if (firstName != null)
+      p.setFirstName(firstName);
+    if (lastName != null)
+      p.setLastName(lastName);
+    if (middleName != null)
+      p.setMiddleName(middleName);
+    if (phoneNumber != null)
+      p.setPhoneNumber(phoneNumber);
+    if (address != null)
+      p.setAddress(address);
+
+    return userRepository.save(user);
   }
 
 
