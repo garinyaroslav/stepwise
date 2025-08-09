@@ -111,7 +111,7 @@ public class ExplanatoryNoteItemService {
     log.info("Explanatory note item with id: {} approved successfully", itemId);
   }
 
-  public void rejectItem(Long itemId) {
+  public void rejectItem(Long itemId, String teacherComment) {
     log.info("Rejecting explanatory note item with id: {}", itemId);
 
     ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
@@ -124,6 +124,7 @@ public class ExplanatoryNoteItemService {
     }
 
     item.setStatus(ItemStatus.REJECTED);
+    item.setTeacherComment(teacherComment);
     item.setRejectedAt(LocalDateTime.now());
 
     explanatoryNoteRepository.save(item);
