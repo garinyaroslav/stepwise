@@ -41,23 +41,39 @@ public class ExplanatoryNoteItemService {
     Project project = projectRepository.findById(projectId)
         .orElseThrow(() -> new IllegalArgumentException("Project not found with id: " + projectId));
 
-    List<ExplanatoryNoteItem> items = project.getItems();
-
     if (project.getStudent().getId() != userId)
       throw new IllegalArgumentException(
           "User with id " + userId + " is not the owner of project with id: " + projectId);
 
-    if (items.size() >= (int) project.getAcademicWork().getCountOfChapters())
+    List<ExplanatoryNoteItem> items = project.getItems();
+
+    if (items.size() >= (int) project.getAcademicWork().getCountOfChapters()
+        && (items.getLast().getStatus() == ItemStatus.SUBMITTED
+            || items.getLast().getStatus() == ItemStatus.APPROVED))
       throw new IllegalArgumentException("Project already has all items submitted");
 
-    if (items.size() > 0 && (items.getLast().getStatus() == ItemStatus.SUBMITTED
-        || items.getLast().getStatus() == ItemStatus.DRAFT))
-      throw new IllegalArgumentException("Cannot submit or draft more than one item at a time");
+    if (items.size() > 0 && (items.getLast().getStatus() == ItemStatus.SUBMITTED))
+      throw new IllegalArgumentException("Cannot submit more than one item at a time");
 
-    ExplanatoryNoteItem newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT,
-        file.getOriginalFilename(), LocalDateTime.now(), project);
+    ExplanatoryNoteItem newItem;
 
-    items.add(newItem);
+    if (items.size() == 0 || items.getLast().getStatus() == ItemStatus.APPROVED) {
+      newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, file.getOriginalFilename(),
+          LocalDateTime.now(), project);
+
+      items.add(newItem);
+    } else if (items.getLast().getStatus() == ItemStatus.DRAFT
+        || items.getLast().getStatus() == ItemStatus.REJECTED) {
+      newItem = items.getLast();
+
+      newItem.setFileName(file.getOriginalFilename());
+      newItem.setDraftedAt(LocalDateTime.now());
+      newItem.setStatus(ItemStatus.DRAFT);
+      newItem.setFileName(file.getOriginalFilename());
+      newItem.setTeacherComment(null);
+    } else
+      throw new IllegalArgumentException(
+          "Cannot create draft item for project with id: " + projectId);
 
     Project savedProject = projectRepository.save(project);
 

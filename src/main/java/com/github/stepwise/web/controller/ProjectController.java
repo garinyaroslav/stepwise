@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -159,6 +160,30 @@ public class ProjectController {
     }
 
     return new ResponseEntity<>(projectDtos, HttpStatus.OK);
+  }
+
+  @PostMapping("/{projectId}/approve")
+  @PreAuthorize("hasRole('ROLE_TEACHER')")
+  public ResponseEntity<ProjectResponseDto> approveProject(@PathVariable Long projectId,
+      @AuthenticationPrincipal UserDetails userDetails) {
+    log.info("Approving project with id: {}", projectId);
+    Long teacherId = ((AppUserDetails) userDetails).getId();
+
+    if (!projectService.isProjectBelongsToTeacher(projectId, teacherId)) {
+      log.error("Project with id: {} does not belong to teacher with id: {}", projectId, teacherId);
+      throw new IllegalArgumentException(
+          "Project not found with id: " + projectId + " for teacher with id: " + teacherId);
+    }
+
+    Project updatedProject = projectService.approve(projectId);
+
+    ProjectResponseDto projectDto =
+        new ProjectResponseDto(updatedProject.getId(), updatedProject.getTitle(),
+            updatedProject.getDescription(), null, null, updatedProject.isApprovedForDefense());
+
+
+    return new ResponseEntity<>(projectDto, HttpStatus.OK);
+
   }
 
 }

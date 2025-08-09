@@ -33,8 +33,8 @@ public class ExplanatoryNoteItemController {
 
   @PostMapping(path = "/draft", consumes = "multipart/form-data")
   @PreAuthorize("hasRole('ROLE_STUDENT')")
-  public ResponseEntity<Void> createExplanatoryNoteItem(@RequestPart("file") MultipartFile file,
-      @RequestPart("projectId") String projectId, @AuthenticationPrincipal UserDetails userDetails)
+  public ResponseEntity<Void> createExplanatoryNoteItem(@RequestPart("projectId") String projectId,
+      @RequestPart("file") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails)
       throws Exception {
     Long currentUserId = ((AppUserDetails) userDetails).getId();
     log.info("Creating explanatory note item with file: {}, userId: {}, porjectId: {}",
@@ -86,8 +86,9 @@ public class ExplanatoryNoteItemController {
 
   @PostMapping("/reject/{id}")
   @PreAuthorize("hasRole('ROLE_TEACHER')")
-  public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id, @RequestBody RejectItemDto rejectItemDto,
-      @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+  public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id,
+      @RequestBody RejectItemDto rejectItemDto, @AuthenticationPrincipal UserDetails userDetails)
+      throws Exception {
     Long currentTeacherId = ((AppUserDetails) userDetails).getId();
 
     log.info("Rejecting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
