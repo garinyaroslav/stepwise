@@ -8,8 +8,8 @@ spring:
     import:
       - file-upload.yml
   datasource:
-    url: jdbc:postgresql://localhost:5432/stepwise_db
-    username: admin
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/stepwise_db}
+    username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:admin}
     hikari:
       schema: stepwise_schema
@@ -18,14 +18,27 @@ spring:
   jpa:
     generate-ddl: true
     open-in-view: false
-
+  mail:
+    host: smtp.mail.ru
+    port: 2525
+    username: ${SMTP_USERNAME:test@mail.ru}
+    password: ${SMTP_PASSWORD:test_password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 jwt:
   secret: ${JWT_SECRET:very-very-secure-secret-key-that-is-at-least-32-characters-long}
   expiration: 3600000
 
 minio:
-  url: http://localhost:9000
-  access-key: minioadmin
-  secret-key: minioadmin
+  url: ${STORAGE_URL:http://localhost:9000}
+  access-key: ${STORAGE_AK:minioadmin}
+  secret-key: ${STORAGE_SK:minioadmin}
   bucket-names:
     - works
+
+client:
+  refresh-token-url: ${REFRESH_TOKEN_URL:http://app.com/reset?token=}

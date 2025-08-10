@@ -20,7 +20,7 @@ public class AuthService {
 
   private final UserRepository userRepository;
 
-  private final PasswordEncoder encoder;
+  private final PasswordEncoder passwordEncoder;
 
   private final AuthenticationManager authenticationManager;
 
@@ -37,7 +37,7 @@ public class AuthService {
     if (user.getRole() == null)
       user.setRole(UserRole.STUDENT);
 
-    user.setPassword(encoder.encode(user.getPassword()));
+    user.setPassword(passwordEncoder.encode(user.getPassword()));
 
     userRepository.save(user);
   }

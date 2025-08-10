@@ -47,9 +47,10 @@ public class WebSecurityConfig {
             exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
         .sessionManagement(sessionManagement -> sessionManagement
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-            .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-            .anyRequest().authenticated());
+        .authorizeHttpRequests(
+            authorizeRequests -> authorizeRequests.requestMatchers("/api/auth/**", "/swagger-ui/**",
+                "/v3/api-docs/**", "api/auth/password/**").permitAll().anyRequest()
+                .authenticated());
     http.addFilterBefore(authenticationJwtTokenFilter(),
         UsernamePasswordAuthenticationFilter.class);
     return http.build();

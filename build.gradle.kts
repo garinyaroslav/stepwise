@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 
 java {
 	toolchain {
@@ -28,6 +28,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
+	implementation("org.springframework.boot:spring-boot-starter-mail")
 	implementation("io.minio:minio:8.5.17")
 	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
@@ -45,12 +46,3 @@ dependencies {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
-
-// bootRun {
-// 	debugOptions {
-// 		enabled = true
-// 		port = 5005
-// 		server = true
-// 		suspend = false
-// 	}	
-// }

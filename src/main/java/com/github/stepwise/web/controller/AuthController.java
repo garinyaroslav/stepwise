@@ -5,7 +5,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.service.AuthService;
+import com.github.stepwise.service.PasswordResetService;
 import com.github.stepwise.web.dto.MessageResponse;
+import com.github.stepwise.web.dto.ResetPasswrodDto;
 import com.github.stepwise.web.dto.SignInDto;
 import com.github.stepwise.web.dto.SignUpDto;
 import jakarta.validation.Valid;
@@ -19,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthController {
 
   private final AuthService authService;
+
+  private final PasswordResetService passwordResetService;
 
   @PostMapping("/signin")
   public String authenticateUser(@Valid @RequestBody SignInDto user) {
@@ -43,4 +47,22 @@ public class AuthController {
     return new ResponseEntity<MessageResponse>(new MessageResponse("User registered successfully"),
         HttpStatus.CREATED);
   }
+
+  @PostMapping("/password/reset-request")
+  public ResponseEntity<String> requestReset(@RequestParam String email) {
+    log.info("Password reset requested for email: {}", email);
+    passwordResetService.requestPasswordReset(email);
+
+    return new ResponseEntity<>("Reset link sent to email", HttpStatus.OK);
+  }
+
+  @PostMapping("/password/reset")
+  public ResponseEntity<String> reset(@RequestBody @Valid ResetPasswrodDto resetPasswrodDto) {
+    log.info("Resetting password with token: {}", resetPasswrodDto.getToken());
+    passwordResetService.resetPassword(resetPasswrodDto.getToken(),
+        resetPasswrodDto.getNewPassword());
+
+    return new ResponseEntity<>("Password reset successful", HttpStatus.OK);
+  }
+
 }
