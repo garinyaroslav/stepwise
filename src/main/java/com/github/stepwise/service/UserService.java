@@ -23,6 +23,13 @@ public class UserService {
 
   private final StudyGroupRepository studyGroupRepository;
 
+  public User findById(Long id) {
+    log.info("Fetching user by id: {}", id);
+
+    return userRepository.findById(id)
+        .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+  }
+
   public Page<User> getAllStudents(Pageable pageable) {
     log.info("Fetching all students by pageable: {}", pageable);
 

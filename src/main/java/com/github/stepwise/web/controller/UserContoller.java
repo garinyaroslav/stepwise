@@ -104,4 +104,21 @@ public class UserContoller {
     return new ResponseEntity<>(userDto, HttpStatus.OK);
   }
 
+  @GetMapping("/profile/my")
+  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
+  public ResponseEntity<UserResponseDto> getMyProfile(
+      @AuthenticationPrincipal UserDetails userDetails) {
+    AppUserDetails appUserDetails = (AppUserDetails) userDetails;
+
+    log.info("Fetching my profile, userId: {}", appUserDetails.getId());
+
+    User u = userService.findById(appUserDetails.getId());
+
+    UserResponseDto userDto = new UserResponseDto(u.getId(), u.getUsername(), u.getEmail(),
+        u.getProfile().getFirstName(), u.getProfile().getLastName(), u.getProfile().getMiddleName(),
+        u.getProfile().getPhoneNumber(), u.getProfile().getAddress());
+
+    return new ResponseEntity<>(userDto, HttpStatus.OK);
+  }
+
 }

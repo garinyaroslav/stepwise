@@ -34,14 +34,26 @@ public class UserResponseDto {
     this.email = email;
   }
 
-  public UserResponseDto(Long id, String username, String email,
-      String firstName, String lastName, String middleName) {
+  public UserResponseDto(Long id, String username, String email, String firstName, String lastName,
+      String middleName) {
     this.id = id;
     this.username = username;
     this.email = email;
     this.firstName = firstName;
     this.lastName = lastName;
     this.middleName = middleName;
+  }
+
+  public UserResponseDto(Long id, String username, String email, String firstName, String lastName,
+      String middleName, String phoneNumber, String address) {
+    this.id = id;
+    this.username = username;
+    this.email = email;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.middleName = middleName;
+    this.phoneNumber = phoneNumber;
+    this.address = address;
   }
 
 }
