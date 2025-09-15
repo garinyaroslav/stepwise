@@ -34,6 +34,11 @@ public class UserResponseDto {
     this.email = email;
   }
 
+  public UserResponseDto(Long id, String role) {
+    this.id = id;
+    this.role = role;
+  }
+
   public UserResponseDto(Long id, String username, String email, String firstName, String lastName,
       String middleName) {
     this.id = id;

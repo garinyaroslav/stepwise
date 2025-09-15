@@ -1,5 +1,6 @@
 package com.github.stepwise.service;
 
+import java.util.Map;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.repository.UserRepository;
+import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,14 +44,17 @@ public class AuthService {
     userRepository.save(user);
   }
 
-  public String getTokenByPrincipals(User user) {
+  public Map<String, Object> getUserAndTokenByPrincipals(User user) {
     Authentication authentication = authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
 
-    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+    AppUserDetails userDetails = (AppUserDetails) authentication.getPrincipal();
 
-    return jwtUtils.generateToken(userDetails.getUsername());
+    String token = jwtUtils.generateToken(userDetails.getUsername());
+    String role = userDetails.getRole().name();
+    Long userId = userDetails.getId();
+
+    return Map.of("token", token, "role", role, "userId", userId);
   }
-
 
 }

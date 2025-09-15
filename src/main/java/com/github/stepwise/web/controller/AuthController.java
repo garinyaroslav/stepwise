@@ -1,5 +1,6 @@
 package com.github.stepwise.web.controller;
 
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,7 +10,9 @@ import com.github.stepwise.service.PasswordResetService;
 import com.github.stepwise.web.dto.MessageResponse;
 import com.github.stepwise.web.dto.ResetPasswrodDto;
 import com.github.stepwise.web.dto.SignInDto;
+import com.github.stepwise.web.dto.SignInResponseDto;
 import com.github.stepwise.web.dto.SignUpDto;
+import com.github.stepwise.web.dto.UserResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +28,17 @@ public class AuthController {
   private final PasswordResetService passwordResetService;
 
   @PostMapping("/signin")
-  public String authenticateUser(@Valid @RequestBody SignInDto user) {
+  public ResponseEntity<SignInResponseDto> authenticateUser(@Valid @RequestBody SignInDto user) {
     log.info("Authenticating user: {}", user.getUsername());
 
-    return authService.getTokenByPrincipals(new User(user.getUsername(), user.getPassword()));
+    Map<String, Object> userData =
+        authService.getUserAndTokenByPrincipals(new User(user.getUsername(), user.getPassword()));
+
+    SignInResponseDto dto = new SignInResponseDto(
+        new UserResponseDto((Long) userData.get("id"), (String) userData.get("role")),
+        (String) userData.get("token"));
+
+    return new ResponseEntity<SignInResponseDto>(dto, HttpStatus.OK);
   }
 
   @PostMapping("/signup")
