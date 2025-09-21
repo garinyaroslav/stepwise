@@ -24,7 +24,7 @@ public class CreateGroupDto {
   private String name;
 
   @NotNull(message = "Students ids is required")
-  @NotEmpty(message = "Students ids cannot be empty")
+  // @NotEmpty(message = "Students ids cannot be empty")
   @NoDublicatesInCollection(message = "Student IDs must be unique")
   private List<@NotNull(message = "Student ID cannot be null") @Positive(
       message = "Student ID must be a positive number") Long> studentIds = new ArrayList<>();

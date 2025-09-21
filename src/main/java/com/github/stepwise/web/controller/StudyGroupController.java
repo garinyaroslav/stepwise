@@ -1,17 +1,21 @@
 package com.github.stepwise.web.controller;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.service.StudyGroupService;
 import com.github.stepwise.web.dto.CreateGroupDto;
+import com.github.stepwise.web.dto.GroupResponseDto;
 import com.github.stepwise.web.dto.UpdateGroupDto;
 import com.github.stepwise.web.dto.StudyGroupResponseDto;
 import com.github.stepwise.web.dto.UserResponseDto;
@@ -34,6 +38,20 @@ public class StudyGroupController {
     studyGroupService.create(groupDto.getName(), groupDto.getStudentIds());
 
     return new ResponseEntity<Void>(HttpStatus.CREATED);
+  }
+
+  @GetMapping
+  @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
+  public ResponseEntity<List<GroupResponseDto>> getAllGroups(
+      @RequestParam(required = false) String search) {
+    log.info("Getting all gorups with search: {}", search);
+
+    List<StudyGroup> groups = studyGroupService.findAll(search);
+
+    List<GroupResponseDto> groupDtos =
+        groups.stream().map(group -> new GroupResponseDto(group.getId(), group.getName())).toList();
+
+    return new ResponseEntity<>(groupDtos, HttpStatus.OK);
   }
 
   @PutMapping

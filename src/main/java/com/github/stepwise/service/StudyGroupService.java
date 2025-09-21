@@ -18,6 +18,16 @@ public class StudyGroupService {
   private final StudyGroupRepository studyGroupRepository;
   private final UserRepository userRepository;
 
+  public List<StudyGroup> findAll(String search) {
+    log.info("Find all groups with search: {}", search);
+
+    if (search == null || search.isBlank()) {
+      return studyGroupRepository.findAll();
+    }
+
+    return studyGroupRepository.findByNameContainingIgnoreCase(search);
+  }
+
   @Transactional
   public void create(String name, List<Long> studentsIds) {
     log.info("Create group with name: {}", name);
@@ -26,6 +36,7 @@ public class StudyGroupService {
 
     if (usersList.isEmpty()) {
       log.warn("No users found with provided IDs: {}", studentsIds);
+      studyGroupRepository.save(new StudyGroup(name, List.of()));
       return;
     }
 
