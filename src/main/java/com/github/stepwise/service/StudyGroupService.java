@@ -28,6 +28,13 @@ public class StudyGroupService {
     return studyGroupRepository.findByNameContainingIgnoreCase(search);
   }
 
+  public StudyGroup findById(Long groupId) {
+    log.info("Find group by id: {}", groupId);
+
+    return studyGroupRepository.findById(groupId)
+        .orElseThrow(() -> new IllegalArgumentException("Group with id " + groupId + " not found"));
+  }
+
   @Transactional
   public void create(String name, List<Long> studentsIds) {
     log.info("Create group with name: {}", name);

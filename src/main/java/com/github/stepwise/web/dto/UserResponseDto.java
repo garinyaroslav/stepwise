@@ -29,6 +29,10 @@ public class UserResponseDto {
 
   private String address;
 
+  public UserResponseDto(Long id) {
+    this.id = id;
+  }
+
   public UserResponseDto(String username, String email) {
     this.username = username;
     this.email = email;

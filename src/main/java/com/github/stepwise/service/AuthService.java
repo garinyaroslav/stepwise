@@ -35,13 +35,13 @@ public class AuthService {
     return exists;
   }
 
-  public void registerUser(User user) {
+  public User registerUser(User user) {
     if (user.getRole() == null)
       user.setRole(UserRole.STUDENT);
 
     user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-    userRepository.save(user);
+    return userRepository.save(user);
   }
 
   public Map<String, Object> getUserAndTokenByPrincipals(User user) {

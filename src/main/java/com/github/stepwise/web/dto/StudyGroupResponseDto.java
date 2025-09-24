@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class StudyGroupResponseDto {
 
+  private Long id;
+
   private String name;
 
   private List<UserResponseDto> students = new ArrayList<>();

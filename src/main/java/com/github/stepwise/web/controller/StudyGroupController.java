@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,6 +55,19 @@ public class StudyGroupController {
     return new ResponseEntity<>(groupDtos, HttpStatus.OK);
   }
 
+  @GetMapping("/{groupId}")
+  @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
+  public ResponseEntity<StudyGroupResponseDto> getGroup(@PathVariable String groupId) {
+    log.info("Getting grpup with id: {}", groupId);
+
+    StudyGroup group = studyGroupService.findById(Long.valueOf(groupId));
+
+    StudyGroupResponseDto groupDto = new StudyGroupResponseDto(group.getId(), group.getName(),
+        group.getStudents().stream().map(user -> new UserResponseDto(user.getId())).toList());
+
+    return new ResponseEntity<>(groupDto, HttpStatus.OK);
+  }
+
   @PutMapping
   @PreAuthorize("hasRole('ROLE_ADMIN')")
   public ResponseEntity<StudyGroupResponseDto> updateGroup(
@@ -63,9 +77,10 @@ public class StudyGroupController {
     StudyGroup updatedStudyGroup =
         studyGroupService.update(groupDto.getId(), groupDto.getStudentIds());
 
-    StudyGroupResponseDto updatedStudyGroupDto = new StudyGroupResponseDto(
-        updatedStudyGroup.getName(), updatedStudyGroup.getStudents().stream()
-            .map(user -> new UserResponseDto(user.getUsername(), user.getEmail())).toList());
+    StudyGroupResponseDto updatedStudyGroupDto =
+        new StudyGroupResponseDto(updatedStudyGroup.getId(), updatedStudyGroup.getName(),
+            updatedStudyGroup.getStudents().stream()
+                .map(user -> new UserResponseDto(user.getUsername(), user.getEmail())).toList());
 
 
     return new ResponseEntity<StudyGroupResponseDto>(updatedStudyGroupDto, HttpStatus.OK);
