@@ -14,4 +14,6 @@ public class GroupResponseDto {
 
     private String name;
 
+    private int studentsCount;
+
 }

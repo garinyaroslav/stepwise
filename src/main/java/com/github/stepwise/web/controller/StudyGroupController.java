@@ -49,8 +49,9 @@ public class StudyGroupController {
 
     List<StudyGroup> groups = studyGroupService.findAll(search);
 
-    List<GroupResponseDto> groupDtos =
-        groups.stream().map(group -> new GroupResponseDto(group.getId(), group.getName())).toList();
+    List<GroupResponseDto> groupDtos = groups.stream().map(
+        group -> new GroupResponseDto(group.getId(), group.getName(), group.getStudents().size()))
+        .toList();
 
     return new ResponseEntity<>(groupDtos, HttpStatus.OK);
   }
