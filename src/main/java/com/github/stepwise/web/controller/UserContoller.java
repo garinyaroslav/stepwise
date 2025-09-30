@@ -1,6 +1,7 @@
 package com.github.stepwise.web.controller;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,10 +38,17 @@ public class UserContoller {
   @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
   public ResponseEntity<PageResponse<UserResponseDto>> getAllStudents(
       @RequestParam(defaultValue = "0") int pageNumber,
-      @RequestParam(defaultValue = "10") int pageSize) {
+      @RequestParam(defaultValue = "10") int pageSize,
+      @RequestParam(required = false) String search) {
     log.info("Fetching all users");
 
-    var users = userService.getAllStudents(PageRequest.of(pageNumber, pageSize));
+    Page<User> users;
+
+    if (search != null && !search.isBlank()) {
+      users = userService.getAllStudents(search, PageRequest.of(pageNumber, pageSize));
+    } else {
+      users = userService.getAllStudents(PageRequest.of(pageNumber, pageSize));
+    }
 
     var content = users.getContent().stream()
         .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), null,
