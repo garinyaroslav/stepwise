@@ -40,7 +40,35 @@ public class UserContoller {
       @RequestParam(defaultValue = "0") int pageNumber,
       @RequestParam(defaultValue = "10") int pageSize,
       @RequestParam(required = false) String search) {
-    log.info("Fetching all users");
+    log.info("Fetching all students");
+
+    Page<User> users;
+
+    if (search != null && !search.isBlank()) {
+      users = userService.getAllStudents(search, PageRequest.of(pageNumber, pageSize));
+    } else {
+      users = userService.getAllStudents(PageRequest.of(pageNumber, pageSize));
+    }
+
+    var content = users.getContent().stream()
+        .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), null,
+            user.getProfile().getFirstName(), user.getProfile().getLastName(),
+            user.getProfile().getMiddleName(), user.getProfile().getPhoneNumber(),
+            user.getProfile().getAddress()))
+        .toList();
+
+    return new ResponseEntity<>(new PageResponse<UserResponseDto>(content, users.getTotalPages()),
+        HttpStatus.OK);
+  }
+
+  
+  @GetMapping("/teacher")
+  @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
+  public ResponseEntity<PageResponse<UserResponseDto>> getAllTeachers(
+      @RequestParam(defaultValue = "0") int pageNumber,
+      @RequestParam(defaultValue = "10") int pageSize,
+      @RequestParam(required = false) String search) {
+    log.info("Fetching all teachers");
 
     Page<User> users;
 

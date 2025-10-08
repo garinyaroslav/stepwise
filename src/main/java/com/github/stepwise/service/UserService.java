@@ -42,6 +42,18 @@ public class UserService {
     return userRepository.findByUsernameOrFirstNameOrLastName(search, UserRole.STUDENT, pageable);
   }
 
+  public Page<User> getAllTeachers(Pageable pageable) {
+    log.info("Fetching all teachers by pageable: {}", pageable);
+
+    return userRepository.findByRole(UserRole.TEACHER, pageable);
+  }
+
+  public Page<User> getAllTeachers(String search, Pageable pageable) {
+    log.info("Fetching all teachers by search: {} and pageable: {}", search, pageable);
+
+    return userRepository.findByUsernameOrFirstNameOrLastName(search, UserRole.TEACHER, pageable);
+  }
+
   @Transactional
   public List<User> getAllStudentsByGroupId(Long groupId) {
     log.info("Fetching all students by groupId: {}", groupId);
