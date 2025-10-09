@@ -61,7 +61,7 @@ public class UserContoller {
         HttpStatus.OK);
   }
 
-  
+
   @GetMapping("/teacher")
   @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
   public ResponseEntity<PageResponse<UserResponseDto>> getAllTeachers(
@@ -73,9 +73,9 @@ public class UserContoller {
     Page<User> users;
 
     if (search != null && !search.isBlank()) {
-      users = userService.getAllStudents(search, PageRequest.of(pageNumber, pageSize));
+      users = userService.getAllTeachers(search, PageRequest.of(pageNumber, pageSize));
     } else {
-      users = userService.getAllStudents(PageRequest.of(pageNumber, pageSize));
+      users = userService.getAllTeachers(PageRequest.of(pageNumber, pageSize));
     }
 
     var content = users.getContent().stream()
