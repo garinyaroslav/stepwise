@@ -1,5 +1,7 @@
 package com.github.stepwise.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -19,29 +21,33 @@ import lombok.NoArgsConstructor;
 @Table(name = "academic_work_chapter")
 public class AcademicWorkChapter {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(nullable = false)
-  private String title;
+    @Column(nullable = false)
+    private String title;
 
-  @Column(nullable = false)
-  private Integer indexOfChapter;
+    @Column(nullable = false)
+    private Integer indexOfChapter;
 
-  @Column
-  private String description;
+    @Column
+    private String description;
 
-  @ManyToOne
-  @JoinColumn(name = "academic_work_id", nullable = false)
-  private AcademicWork academicWork;
+    @Column(nullable = false)
+    private LocalDateTime deadline;
 
-  public AcademicWorkChapter(String title, Integer indexOfChapter, String description,
-      AcademicWork academicWork) {
-    this.title = title;
-    this.indexOfChapter = indexOfChapter;
-    this.description = description;
-    this.academicWork = academicWork;
-  }
+    @ManyToOne
+    @JoinColumn(name = "academic_work_id", nullable = false)
+    private AcademicWork academicWork;
+
+    public AcademicWorkChapter(String title, Integer indexOfChapter, String description,
+            AcademicWork academicWork, LocalDateTime deadline) {
+        this.title = title;
+        this.indexOfChapter = indexOfChapter;
+        this.description = description;
+        this.academicWork = academicWork;
+        this.deadline = deadline;
+    }
 
 }
