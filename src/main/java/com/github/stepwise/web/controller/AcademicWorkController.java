@@ -64,7 +64,7 @@ public class AcademicWorkController {
                         work.getCountOfChapters(), work.getType(), work.getTeacher().getEmail(),
                         work.getTeacher().getProfile().getFirstName(),
                         work.getTeacher().getProfile().getLastName(),
-                        work.getTeacher().getProfile().getMiddleName(), null))
+                        work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), null))
                 .toList();
 
         return new ResponseEntity<>(worksDto, HttpStatus.OK);
@@ -99,7 +99,7 @@ public class AcademicWorkController {
                         work.getCountOfChapters(), work.getType(), work.getTeacher().getEmail(),
                         work.getTeacher().getProfile().getFirstName(),
                         work.getTeacher().getProfile().getLastName(),
-                        work.getTeacher().getProfile().getMiddleName(), null))
+                        work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), null))
                 .toList();
 
         return new ResponseEntity<>(worksDto, HttpStatus.OK);
@@ -121,7 +121,7 @@ public class AcademicWorkController {
                 work.getDescription(), work.getCountOfChapters(), work.getType(),
                 work.getTeacher().getEmail(), work.getTeacher().getProfile().getFirstName(),
                 work.getTeacher().getProfile().getLastName(),
-                work.getTeacher().getProfile().getMiddleName(), chaptersDto);
+                work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), chaptersDto);
 
         return new ResponseEntity<>(workDto, HttpStatus.OK);
     }

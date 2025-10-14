@@ -23,30 +23,29 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Table(name = "study_group")
 public class StudyGroup {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
 
-  @Column(nullable = false, unique = true)
-  private String name;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @ManyToMany(fetch = FetchType.EAGER)
-  @JoinTable(name = "group_student", joinColumns = @JoinColumn(name = "group_id"),
-      inverseJoinColumns = @JoinColumn(name = "student_id"))
-  private List<User> students = new ArrayList<>();
+    @Column(nullable = false, unique = true)
+    private String name;
 
-  @OneToMany(mappedBy = "group")
-  private List<AcademicWork> academicWorks = new ArrayList<>();
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "group_student", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
+    private List<User> students = new ArrayList<>();
 
-  public StudyGroup(String name, List<User> students) {
-    this.name = name;
-    this.students = students;
-  }
+    @OneToMany(mappedBy = "group")
+    private List<AcademicWork> academicWorks = new ArrayList<>();
 
-  public StudyGroup(Long id, List<User> students) {
-    this.id = id;
-    this.students = students;
-  }
+    public StudyGroup(String name, List<User> students) {
+        this.name = name;
+        this.students = students;
+    }
+
+    public StudyGroup(Long id, List<User> students) {
+        this.id = id;
+        this.students = students;
+    }
 
 }
-

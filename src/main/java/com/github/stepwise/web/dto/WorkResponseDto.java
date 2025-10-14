@@ -13,24 +13,26 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WorkResponseDto {
 
-  private Long id;
+    private Long id;
 
-  private String title;
+    private String title;
 
-  private String description;
+    private String description;
 
-  private Integer countOfChapters;
+    private Integer countOfChapters;
 
-  private ProjectType type;
+    private ProjectType type;
 
-  private String teacherEmail;
+    private String teacherEmail;
 
-  private String teacherName;
+    private String teacherName;
 
-  private String teacherLastName;
+    private String teacherLastName;
 
-  private String teacherMiddleName;
+    private String teacherMiddleName;
 
-  private List<WorkChapterDto> academicWorkChapters;
+    private String groupName;
+
+    private List<WorkChapterDto> academicWorkChapters;
 
 }
