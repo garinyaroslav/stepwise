@@ -20,10 +20,10 @@ public class CreateWorkDto {
 
     @NotNull(message = "title is required")
     @NotBlank(message = "title must not be blank")
-    @Size(min = 3, max = 50, message = "title must be between 3 and 50 characters")
+    @Size(min = 3, max = 100, message = "title must be between 3 and 100 characters")
     private String title;
 
-    @Size(min = 3, max = 300, message = "description must be between 3 and 300 characters if provided")
+    @Size(min = 3, max = 500, message = "description must be between 3 and 500 characters if provided")
     private String description;
 
     // @EnumValidator(enumClass = ProjectType.class, message = "Invalid project
