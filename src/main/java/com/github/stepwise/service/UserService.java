@@ -66,6 +66,17 @@ public class UserService {
         return userRepository.findAllById(studnetIds);
     }
 
+    public List<User> getUsersWithTempPasswordByGroupId(Long groupId) {
+        log.info("Fetching users with temporary passwords by groupId: {}", groupId);
+
+        StudyGroup group = studyGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + groupId));
+
+        return group.getStudents().stream()
+                .filter(user -> Boolean.TRUE.equals(user.getIsTempPassword()))
+                .toList();
+    }
+
     public User updateProfile(Long userId, String firstName, String lastName, String middleName,
             String phoneNumber, String address) {
         log.info("Updating profile for userId: {}", userId);
