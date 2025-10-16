@@ -20,63 +20,66 @@ import java.util.UUID;
 @Slf4j
 public class PasswordResetService {
 
-  @Autowired
-  private UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
-  @Autowired
-  private PasswordResetTokenRepository tokenRepository;
+    @Autowired
+    private PasswordResetTokenRepository tokenRepository;
 
-  @Autowired
-  private JavaMailSender mailSender;
+    @Autowired
+    private JavaMailSender mailSender;
 
-  @Autowired
-  private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-  @Value("${spring.mail.username}")
-  private String fromEmail;
+    @Value("${spring.mail.username}")
+    private String fromEmail;
 
-  @Value("${client.refresh-token-url}")
-  private String clientRedirectUrl;
+    @Value("${client.refresh-token-url}")
+    private String clientRedirectUrl;
 
-  public void requestPasswordReset(String email) {
-    User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public void requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-    String token = UUID.randomUUID().toString();
-    PasswordResetToken resetToken =
-        new PasswordResetToken(token, user, new Date(System.currentTimeMillis() + 3600000));
+        String token = UUID.randomUUID().toString();
+        PasswordResetToken resetToken = new PasswordResetToken(token, user,
+                new Date(System.currentTimeMillis() + 3600000));
 
-    tokenRepository.save(resetToken);
+        tokenRepository.save(resetToken);
 
-    SimpleMailMessage message = new SimpleMailMessage();
-    message.setTo(email);
-    message.setFrom(fromEmail);
-    message.setSubject("Password Reset Request");
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setFrom(fromEmail);
+        message.setSubject("Password Reset Request");
 
-    message.setText("To reset your password, click the link: " + clientRedirectUrl + token);
-    mailSender.send(message);
+        message.setText("To reset your password, click the link: " + clientRedirectUrl + token);
+        mailSender.send(message);
 
-    log.info("Password reset link sent to {}", email);
-  }
+        log.info("Password reset link sent to {}", email);
+    }
 
-  public void resetPassword(String token, String newPassword) {
-    PasswordResetToken resetToken = tokenRepository.findByToken(token)
-        .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
 
-    if (resetToken.getExpiryDate().before(new Date()))
-      throw new RuntimeException("Token expired");
+        if (resetToken.getExpiryDate().before(new Date()))
+            throw new RuntimeException("Token expired");
 
+        User user = resetToken.getUser();
 
-    User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
 
-    user.setPassword(passwordEncoder.encode(newPassword));
+        if (user.getIsTempPassword()) {
+            user.setTempPassword(null);
+            user.setIsTempPassword(false);
+        }
 
-    userRepository.save(user);
+        userRepository.save(user);
 
-    tokenRepository.delete(resetToken);
+        tokenRepository.delete(resetToken);
 
-    log.info("Password reset successful for user: {}", user.getUsername());
-  }
+        log.info("Password reset successful for user: {}", user.getUsername());
+    }
+
 }
-
-

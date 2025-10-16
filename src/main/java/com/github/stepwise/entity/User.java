@@ -24,49 +24,55 @@ import lombok.NoArgsConstructor;
 @Table(name = "usr")
 public class User {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(unique = true, nullable = false)
-  private String username;
+    @Column(unique = true, nullable = false)
+    private String username;
 
-  @Column(nullable = false)
-  private String password;
+    @Column(nullable = false)
+    private String password;
 
-  @Column(unique = true, nullable = false)
-  private String email;
+    @Column(name = "temp_password")
+    private String tempPassword;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private UserRole role;
+    @Column(name = "is_temp_password", nullable = false)
+    private Boolean isTempPassword = true;
 
-  @ManyToMany(mappedBy = "students")
-  private List<StudyGroup> groups = new ArrayList<>();
+    @Column(unique = true, nullable = false)
+    private String email;
 
-  @OneToOne(cascade = CascadeType.ALL)
-  private Profile profile;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
 
-  public User(String username, String password) {
-    this.username = username;
-    this.password = password;
-  }
+    @ManyToMany(mappedBy = "students")
+    private List<StudyGroup> groups = new ArrayList<>();
 
-  public User(String username, String password, String email, UserRole role) {
-    this.username = username;
-    this.password = password;
-    this.email = email;
-    this.role = role;
-    this.profile = new Profile();
-  }
+    @OneToOne(cascade = CascadeType.ALL)
+    private Profile profile;
 
-  public User(String username, String password, String email, UserRole role, Profile profile) {
-    this.username = username;
-    this.password = password;
-    this.email = email;
-    this.role = role;
-    this.profile = profile;
-  }
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
+    public User(String username, String password, String email, UserRole role) {
+        this.username = username;
+        this.password = password;
+        this.tempPassword = password;
+        this.email = email;
+        this.role = role;
+        this.profile = new Profile();
+    }
+
+    public User(String username, String password, String email, UserRole role, Profile profile) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+        this.role = role;
+        this.profile = profile;
+    }
 
 }
-

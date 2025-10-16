@@ -3,7 +3,6 @@ package com.github.stepwise.service;
 import java.util.Map;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -20,41 +19,41 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class AuthService {
 
-  private final UserRepository userRepository;
+    private final UserRepository userRepository;
 
-  private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-  private final AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-  private final JwtUtil jwtUtils;
+    private final JwtUtil jwtUtils;
 
-  public boolean isUsernameTaken(String username) {
-    log.info("Checking if username {} exists", username);
-    boolean exists = userRepository.existsByUsername(username);
+    public boolean isUsernameTaken(String username) {
+        log.info("Checking if username {} exists", username);
+        boolean exists = userRepository.existsByUsername(username);
 
-    return exists;
-  }
+        return exists;
+    }
 
-  public User registerUser(User user) {
-    if (user.getRole() == null)
-      user.setRole(UserRole.STUDENT);
+    public User registerUser(User user) {
+        if (user.getRole() == null)
+            user.setRole(UserRole.STUDENT);
 
-    user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-    return userRepository.save(user);
-  }
+        return userRepository.save(user);
+    }
 
-  public Map<String, Object> getUserAndTokenByPrincipals(User user) {
-    Authentication authentication = authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
+    public Map<String, Object> getUserAndTokenByPrincipals(User user) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
 
-    AppUserDetails userDetails = (AppUserDetails) authentication.getPrincipal();
+        AppUserDetails userDetails = (AppUserDetails) authentication.getPrincipal();
 
-    String token = jwtUtils.generateToken(userDetails.getUsername());
-    String role = userDetails.getRole().name();
-    Long userId = userDetails.getId();
+        String token = jwtUtils.generateToken(userDetails.getUsername());
+        String role = userDetails.getRole().name();
+        Long userId = userDetails.getId();
 
-    return Map.of("token", token, "role", role, "userId", userId);
-  }
+        return Map.of("token", token, "role", role, "userId", userId);
+    }
 
 }
