@@ -12,56 +12,58 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "explanatory_note_item")
 public class ExplanatoryNoteItem {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(nullable = false)
-  private Integer orderNumber;
+    @Column(nullable = false)
+    private Integer orderNumber;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private ItemStatus status = ItemStatus.DRAFT;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ItemStatus status = ItemStatus.DRAFT;
 
-  @Column(nullable = false)
-  private String fileName;
+    @Column(nullable = false)
+    private String fileName;
 
-  @Column(columnDefinition = "TEXT")
-  private String teacherComment;
+    @Column(columnDefinition = "TEXT")
+    private String teacherComment;
 
-  @Column(nullable = false)
-  private LocalDateTime draftedAt;
+    @Column(nullable = false)
+    private LocalDateTime draftedAt;
 
-  @Column
-  private LocalDateTime submittedAt;
+    @Column
+    private LocalDateTime submittedAt;
 
-  @Column
-  private LocalDateTime approvedAt;
+    @Column
+    private LocalDateTime approvedAt;
 
-  @Column
-  private LocalDateTime rejectedAt;
+    @Column
+    private LocalDateTime rejectedAt;
 
-  @ManyToOne
-  @JoinColumn(name = "project_id", nullable = false)
-  private Project project;
+    @ManyToOne
+    @JoinColumn(name = "project_id", nullable = false)
+    private Project project;
 
-  public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, String fileName,
-      LocalDateTime draftedAt, Project project) {
-    this.orderNumber = orderNumber;
-    this.status = status;
-    this.fileName = fileName;
-    this.draftedAt = draftedAt;
-    this.project = project;
-  }
+    public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, String fileName,
+            LocalDateTime draftedAt, Project project) {
+        this.orderNumber = orderNumber;
+        this.status = status;
+        this.fileName = fileName;
+        this.draftedAt = draftedAt;
+        this.project = project;
+    }
 
 }

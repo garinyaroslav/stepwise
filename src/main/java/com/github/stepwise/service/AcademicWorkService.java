@@ -21,66 +21,64 @@ import java.util.List;
 @Slf4j
 public class AcademicWorkService {
 
-  private final AcademicWorkRepository academicWorkRepository;
+    private final AcademicWorkRepository academicWorkRepository;
 
-  private final StudyGroupRepository studyGroupRepository;
+    private final StudyGroupRepository studyGroupRepository;
 
-  private final UserRepository userRepository;
+    private final UserRepository userRepository;
 
-  private final ProjectRepository projectRepository;
+    private final ProjectRepository projectRepository;
 
-  @Transactional
-  public void create(AcademicWork academicWork, List<AcademicWorkChapter> chapters, Long groupId,
-      Long teacherId) {
-    log.info("Creating work: {}, chapters: {}, groupId: {}, teacherId: {}", academicWork, chapters,
-        groupId, teacherId);
+    @Transactional
+    public void create(AcademicWork academicWork, List<AcademicWorkChapter> chapters, Long groupId,
+            Long teacherId) {
+        log.info("Creating work: {}, chapters: {}, groupId: {}, teacherId: {}", academicWork, chapters,
+                groupId, teacherId);
 
-    StudyGroup group = studyGroupRepository.findById(groupId)
-        .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + groupId));
+        StudyGroup group = studyGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + groupId));
 
-    User teacher = userRepository.findById(teacherId)
-        .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + teacherId));
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + teacherId));
 
-    academicWork.setGroup(group);
-    academicWork.setTeacher(teacher);
-    academicWork.setAcademicWorkChapters(chapters);
+        academicWork.setGroup(group);
+        academicWork.setTeacher(teacher);
+        academicWork.setAcademicWorkChapters(chapters);
 
-    academicWorkRepository.save(academicWork);
+        academicWorkRepository.save(academicWork);
 
-    List<Project> projects = new LinkedList<>();
+        List<Project> projects = new LinkedList<>();
 
-    for (User student : group.getStudents()) {
-      projects.add(new Project("Мой проект по теме: " + academicWork.getTitle(), "Описание проекта",
-          student, academicWork));
+        for (User student : group.getStudents()) {
+            projects.add(new Project("Мой проект по теме: " + academicWork.getTitle(), "Описание проекта",
+                    student, academicWork));
+        }
+
+        projectRepository.saveAll(projects);
     }
 
-    projectRepository.saveAll(projects);
-  }
+    public List<AcademicWork> getByGroupId(Long groupId) {
+        log.info("Getching works for group with id: {}", groupId);
 
-  public List<AcademicWork> getByGroupId(Long groupId) {
-    log.info("Getching works for group with id: {}", groupId);
+        return academicWorkRepository.findByGroupId(groupId);
+    }
 
-    return academicWorkRepository.findByGroupId(groupId);
-  }
+    public AcademicWork getById(Long groupId) {
+        log.info("Getching work with id: {}", groupId);
 
-  public AcademicWork getById(Long groupId) {
-    log.info("Getching work with id: {}", groupId);
+        AcademicWork work = academicWorkRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Work not found with id: " + groupId));
 
-    AcademicWork work = academicWorkRepository.findById(groupId)
-        .orElseThrow(() -> new IllegalArgumentException("Work not found with id: " + groupId));
+        return work;
+    }
 
-    return work;
-  }
+    public List<AcademicWork> getByStudentId(Long studentId) {
+        log.info("Fetching works for student with id: {}", studentId);
 
-  public List<AcademicWork> getByStudentId(Long studentId) {
-    log.info("Fetching works for student with id: {}", studentId);
+        userRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + studentId));
 
-    userRepository.findById(studentId)
-        .orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + studentId));
-
-    return academicWorkRepository.findByStudentId(studentId);
-  }
-
-
+        return academicWorkRepository.findByStudentId(studentId);
+    }
 
 }

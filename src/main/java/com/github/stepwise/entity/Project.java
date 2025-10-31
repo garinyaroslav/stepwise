@@ -14,49 +14,51 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
 @NoArgsConstructor
+@Builder
 @AllArgsConstructor
 @Table(name = "project")
 public class Project {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(nullable = false)
-  private String title;
+    @Column(nullable = false)
+    private String title;
 
-  @Column(columnDefinition = "TEXT")
-  private String description;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-  @ManyToOne
-  @JoinColumn(name = "student_id")
-  private User student;
+    @ManyToOne
+    @JoinColumn(name = "student_id")
+    private User student;
 
-  @ManyToOne
-  @JoinColumn(name = "academic_work_id", nullable = false)
-  private AcademicWork academicWork;
+    @ManyToOne
+    @JoinColumn(name = "academic_work_id", nullable = false)
+    private AcademicWork academicWork;
 
-  @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-  private List<ExplanatoryNoteItem> items = new ArrayList<>();
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<ExplanatoryNoteItem> items = new ArrayList<>();
 
-  @Column(nullable = false)
-  private boolean isApprovedForDefense = false;
+    @Column(nullable = false)
+    private boolean isApprovedForDefense = false;
 
-  public Project(Long id, String title, String description) {
-    this.id = id;
-    this.title = title;
-    this.description = description;
-  }
+    public Project(Long id, String title, String description) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+    }
 
-  public Project(String title, String description, User student, AcademicWork academicWork) {
-    this.title = title;
-    this.description = description;
-    this.student = student;
-    this.academicWork = academicWork;
-  }
+    public Project(String title, String description, User student, AcademicWork academicWork) {
+        this.title = title;
+        this.description = description;
+        this.student = student;
+        this.academicWork = academicWork;
+    }
 }

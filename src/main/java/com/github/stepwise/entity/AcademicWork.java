@@ -16,53 +16,54 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "academic_work")
 public class AcademicWork {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(nullable = false)
-  private String title;
+    @Column(nullable = false)
+    private String title;
 
-  @Column(columnDefinition = "TEXT")
-  private String description;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-  @Column(nullable = false)
-  private Integer countOfChapters;
+    @Column(nullable = false)
+    private Integer countOfChapters;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private ProjectType type;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProjectType type;
 
-  @ManyToOne
-  @JoinColumn(name = "teacher_id")
-  private User teacher;
+    @ManyToOne
+    @JoinColumn(name = "teacher_id")
+    private User teacher;
 
-  @ManyToOne
-  @JoinColumn(name = "group_id", nullable = false)
-  private StudyGroup group;
+    @ManyToOne
+    @JoinColumn(name = "group_id", nullable = false)
+    private StudyGroup group;
 
-  @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true,
-      fetch = FetchType.EAGER)
-  private List<AcademicWorkChapter> academicWorkChapters = new ArrayList<>();
+    @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<AcademicWorkChapter> academicWorkChapters = new ArrayList<>();
 
-  @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Project> projects = new ArrayList<>();
+    @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Project> projects = new ArrayList<>();
 
-  public AcademicWork(String title, String description, ProjectType type, Integer countOfChapters) {
-    this.title = title;
-    this.description = description;
-    this.type = type;
-    this.countOfChapters = countOfChapters;
-  }
+    public AcademicWork(String title, String description, ProjectType type, Integer countOfChapters) {
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.countOfChapters = countOfChapters;
+    }
 
 }
