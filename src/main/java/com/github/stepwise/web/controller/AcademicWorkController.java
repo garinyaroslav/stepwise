@@ -70,6 +70,24 @@ public class AcademicWorkController {
         return new ResponseEntity<>(worksDto, HttpStatus.OK);
     }
 
+    @GetMapping("/teacher/{teacherId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
+    public ResponseEntity<List<WorkResponseDto>> getWorksByTeacherId(@PathVariable Long teacherId) {
+        log.info("Fetching academic workd for teacher with id: {}", teacherId);
+
+        List<AcademicWork> works = academicWorkService.getByTeacherId(teacherId);
+
+        List<WorkResponseDto> worksDto = works.stream()
+                .map(work -> new WorkResponseDto(work.getId(), work.getTitle(), work.getDescription(),
+                        work.getCountOfChapters(), work.getType(), work.getTeacher().getEmail(),
+                        work.getTeacher().getProfile().getFirstName(),
+                        work.getTeacher().getProfile().getLastName(),
+                        work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), null))
+                .toList();
+
+        return new ResponseEntity<>(worksDto, HttpStatus.OK);
+    }
+
     @GetMapping("/student")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<List<WorkResponseDto>> getStudentWorks(
