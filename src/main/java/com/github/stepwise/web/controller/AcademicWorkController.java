@@ -72,10 +72,12 @@ public class AcademicWorkController {
 
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
-    public ResponseEntity<List<WorkResponseDto>> getWorksByTeacherId(@PathVariable Long teacherId) {
-        log.info("Fetching academic workd for teacher with id: {}", teacherId);
+    public ResponseEntity<List<WorkResponseDto>> getWorksByTeacherId(@PathVariable Long teacherId,
+            @RequestParam(required = false) Long groupId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("Fetching academic work for teacher with id: {}, and group with id: {}", teacherId, groupId);
 
-        List<AcademicWork> works = academicWorkService.getByTeacherId(teacherId);
+        List<AcademicWork> works = academicWorkService.getByTeacherAndGroupId(teacherId, groupId);
 
         List<WorkResponseDto> worksDto = works.stream()
                 .map(work -> new WorkResponseDto(work.getId(), work.getTitle(), work.getDescription(),

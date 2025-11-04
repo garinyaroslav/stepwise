@@ -15,4 +15,6 @@ public interface AcademicWorkRepository extends JpaRepository<AcademicWork, Long
 
     List<AcademicWork> findByTeacherId(Long teacherId);
 
+    List<AcademicWork> findByGroupIdAndTeacherId(Long groupId, Long teacherId);
+
 }

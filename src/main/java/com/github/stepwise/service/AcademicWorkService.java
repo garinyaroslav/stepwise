@@ -63,8 +63,11 @@ public class AcademicWorkService {
         return academicWorkRepository.findByGroupId(groupId);
     }
 
-    public List<AcademicWork> getByTeacherId(Long teacherId) {
+    public List<AcademicWork> getByTeacherAndGroupId(Long teacherId, Long groupId) {
         log.info("Getching works for teacher with id: {}", teacherId);
+
+        if (groupId != null)
+            return academicWorkRepository.findByGroupIdAndTeacherId(groupId, teacherId);
 
         return academicWorkRepository.findByTeacherId(teacherId);
     }
