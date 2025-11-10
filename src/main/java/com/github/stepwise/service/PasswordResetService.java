@@ -1,5 +1,6 @@
 package com.github.stepwise.service;
 
+import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -10,6 +11,9 @@ import com.github.stepwise.entity.PasswordResetToken;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.PasswordResetTokenRepository;
 import com.github.stepwise.repository.UserRepository;
+
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Date;
@@ -53,13 +57,17 @@ public class PasswordResetService {
         message.setFrom(fromEmail);
         message.setSubject("Password Reset Request");
 
-        message.setText("To reset your password, click the link: " + clientRedirectUrl + token);
+        message.setText(String.format(
+                "Ваш код для сброса парля: %s\nЕсли вы пользуетесь web-приложением перейдите по ссылке: %s",
+                token, clientRedirectUrl + token));
         mailSender.send(message);
 
         log.info("Password reset link sent to {}", email);
     }
 
-    public void resetPassword(String token, String newPassword) {
+    public void resetPassword(
+            String token,
+            @NotBlank(message = "password must not be blank") @Size(min = 6, max = 100, message = "password must be between 6 and 100 characters") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=]).{8,}$", message = "Password is not valid: password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character") String newPassword) {
         PasswordResetToken resetToken = tokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
 
