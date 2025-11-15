@@ -26,6 +26,7 @@ import com.github.stepwise.web.dto.ProjectResponseDto;
 import com.github.stepwise.web.dto.UpdateProjectDto;
 import com.github.stepwise.web.dto.UserResponseDto;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,155 +36,153 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ProjectController {
 
-  private final ProjectService projectService;
+    private final ProjectService projectService;
 
-  @PutMapping
-  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
-  public ResponseEntity<UpdateProjectDto> updateProject(@RequestBody UpdateProjectDto projectDto) {
-    log.info("Updating project with id: {}", projectDto.getId());
+    @PutMapping
+    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
+    public ResponseEntity<UpdateProjectDto> updateProject(@Valid @RequestBody UpdateProjectDto projectDto) {
+        log.info("Updating project with id: {}", projectDto.getId());
 
-    Project updatedProject = projectService.updateProject(
-        new Project(projectDto.getId(), projectDto.getTitle(), projectDto.getDescription()));
+        Project updatedProject = projectService.updateProject(
+                new Project(projectDto.getId(), projectDto.getTitle(), projectDto.getDescription()));
 
-    return new ResponseEntity<UpdateProjectDto>(new UpdateProjectDto(updatedProject.getId(),
-        updatedProject.getTitle(), updatedProject.getDescription()), HttpStatus.OK);
-  }
-
-  @GetMapping("/{projectId}")
-  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_ADMIN')")
-  public ResponseEntity<ProjectResponseDto> getStudentProject(@PathVariable Long projectId,
-      @AuthenticationPrincipal UserDetails userDetails) {
-    log.info("Fetching project, project id: {}", projectId);
-
-    AppUserDetails appUserDetails = (AppUserDetails) userDetails;
-
-    if (appUserDetails.getRole() == UserRole.STUDENT) {
-      if (projectService.isProjectBelongsToStudent(projectId, appUserDetails.getId()))
-        log.info("Project with id: {} belongs to student with id: {}", projectId,
-            appUserDetails.getId());
-      else {
-        log.error("Project with id: {} does not belong to student with id: {}", projectId,
-            appUserDetails.getId());
-        throw new IllegalArgumentException("Project not found with id: " + projectId
-            + " for student with id: " + appUserDetails.getId());
-      }
-
+        return new ResponseEntity<UpdateProjectDto>(new UpdateProjectDto(updatedProject.getId(),
+                updatedProject.getTitle(), updatedProject.getDescription()), HttpStatus.OK);
     }
 
-    Project project = projectService.getByProjectId(projectId);
+    @GetMapping("/{projectId}")
+    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_ADMIN')")
+    public ResponseEntity<ProjectResponseDto> getStudentProject(@PathVariable Long projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("Fetching project, project id: {}", projectId);
 
-    User student = project.getStudent();
+        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
 
-    UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
-        student.getEmail(), student.getProfile().getFirstName(), student.getProfile().getLastName(),
-        student.getProfile().getMiddleName());
+        if (appUserDetails.getRole() == UserRole.STUDENT) {
+            if (projectService.isProjectBelongsToStudent(projectId, appUserDetails.getId()))
+                log.info("Project with id: {} belongs to student with id: {}", projectId,
+                        appUserDetails.getId());
+            else {
+                log.error("Project with id: {} does not belong to student with id: {}", projectId,
+                        appUserDetails.getId());
+                throw new IllegalArgumentException("Project not found with id: " + projectId
+                        + " for student with id: " + appUserDetails.getId());
+            }
 
-    List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
-        .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
-            item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
-            item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
-        .toList();
+        }
 
-    ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
-        project.getDescription(), owner, items, project.isApprovedForDefense());
+        Project project = projectService.getByProjectId(projectId);
 
-    return new ResponseEntity<>(projectDto, HttpStatus.OK);
-  }
+        User student = project.getStudent();
 
-  @GetMapping("/work/{workId}")
-  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN')")
-  public ResponseEntity<List<ProjectResponseDto>> getProjectsByWork(@PathVariable Long workId,
-      @AuthenticationPrincipal UserDetails userDetails) {
-    AppUserDetails appUserDetails = (AppUserDetails) userDetails;
+        UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
+                student.getEmail(), student.getProfile().getFirstName(), student.getProfile().getLastName(),
+                student.getProfile().getMiddleName());
 
-    log.info("Fetching projects by work id: {}", workId);
+        List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
+                .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
+                        item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
+                        item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
+                .toList();
 
-    List<Project> projects;
+        ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
+                project.getDescription(), owner, items, project.isApprovedForDefense());
 
-    if (appUserDetails.getRole() == UserRole.STUDENT)
-      projects = projectService.getAllByWorkIdAndStudentId(workId, appUserDetails.getId());
-    else
-      projects = projectService.getAllByWorkId(workId);
-
-    List<ProjectResponseDto> projectDtos = new ArrayList<>(35);
-
-    for (Project project : projects) {
-      User student = project.getStudent();
-
-      UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
-          student.getEmail(), student.getProfile().getFirstName(),
-          student.getProfile().getLastName(), student.getProfile().getMiddleName());
-
-      List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
-          .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
-              item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
-              item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
-          .toList();
-
-      ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
-          project.getDescription(), owner, items, project.isApprovedForDefense());
-
-      projectDtos.add(projectDto);
+        return new ResponseEntity<>(projectDto, HttpStatus.OK);
     }
 
-    return new ResponseEntity<>(projectDtos, HttpStatus.OK);
-  }
+    @GetMapping("/work/{workId}")
+    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN')")
+    public ResponseEntity<List<ProjectResponseDto>> getProjectsByWork(@PathVariable Long workId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
 
-  @GetMapping("/work/{workId}/teacher")
-  @PreAuthorize("hasRole('ROLE_TEACHER')")
-  public ResponseEntity<List<ProjectResponseDto>> getProjectsByWorkForTeacher(
-      @PathVariable Long workId) {
-    log.info("Fetching projects by work id: {} for teacher", workId);
+        log.info("Fetching projects by work id: {}", workId);
 
-    List<Project> projects = projectService.getAllByWorkId(workId);
+        List<Project> projects;
 
-    List<ProjectResponseDto> projectDtos = new ArrayList<>(35);
+        if (appUserDetails.getRole() == UserRole.STUDENT)
+            projects = projectService.getAllByWorkIdAndStudentId(workId, appUserDetails.getId());
+        else
+            projects = projectService.getAllByWorkId(workId);
 
-    for (Project project : projects) {
-      User student = project.getStudent();
+        List<ProjectResponseDto> projectDtos = new ArrayList<>(35);
 
-      UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
-          student.getEmail(), student.getProfile().getFirstName(),
-          student.getProfile().getLastName(), student.getProfile().getMiddleName());
+        for (Project project : projects) {
+            User student = project.getStudent();
 
-      List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
-          .filter(item -> item.getStatus() != ItemStatus.DRAFT)
-          .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
-              item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
-              item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
-          .toList();
+            UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
+                    student.getEmail(), student.getProfile().getFirstName(),
+                    student.getProfile().getLastName(), student.getProfile().getMiddleName());
 
-      ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
-          project.getDescription(), owner, items, project.isApprovedForDefense());
+            List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
+                    .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
+                            item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
+                            item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
+                    .toList();
 
-      projectDtos.add(projectDto);
+            ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
+                    project.getDescription(), owner, items, project.isApprovedForDefense());
+
+            projectDtos.add(projectDto);
+        }
+
+        return new ResponseEntity<>(projectDtos, HttpStatus.OK);
     }
 
-    return new ResponseEntity<>(projectDtos, HttpStatus.OK);
-  }
+    @GetMapping("/work/{workId}/teacher")
+    @PreAuthorize("hasRole('ROLE_TEACHER')")
+    public ResponseEntity<List<ProjectResponseDto>> getProjectsByWorkForTeacher(
+            @PathVariable Long workId) {
+        log.info("Fetching projects by work id: {} for teacher", workId);
 
-  @PostMapping("/{projectId}/approve")
-  @PreAuthorize("hasRole('ROLE_TEACHER')")
-  public ResponseEntity<ProjectResponseDto> approveProject(@PathVariable Long projectId,
-      @AuthenticationPrincipal UserDetails userDetails) {
-    log.info("Approving project with id: {}", projectId);
-    Long teacherId = ((AppUserDetails) userDetails).getId();
+        List<Project> projects = projectService.getAllByWorkId(workId);
 
-    if (!projectService.isProjectBelongsToTeacher(projectId, teacherId)) {
-      log.error("Project with id: {} does not belong to teacher with id: {}", projectId, teacherId);
-      throw new IllegalArgumentException(
-          "Project not found with id: " + projectId + " for teacher with id: " + teacherId);
+        List<ProjectResponseDto> projectDtos = new ArrayList<>(35);
+
+        for (Project project : projects) {
+            User student = project.getStudent();
+
+            UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
+                    student.getEmail(), student.getProfile().getFirstName(),
+                    student.getProfile().getLastName(), student.getProfile().getMiddleName());
+
+            List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
+                    .filter(item -> item.getStatus() != ItemStatus.DRAFT)
+                    .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
+                            item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
+                            item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
+                    .toList();
+
+            ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
+                    project.getDescription(), owner, items, project.isApprovedForDefense());
+
+            projectDtos.add(projectDto);
+        }
+
+        return new ResponseEntity<>(projectDtos, HttpStatus.OK);
     }
 
-    Project updatedProject = projectService.approve(projectId);
+    @PostMapping("/{projectId}/approve")
+    @PreAuthorize("hasRole('ROLE_TEACHER')")
+    public ResponseEntity<ProjectResponseDto> approveProject(@PathVariable Long projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("Approving project with id: {}", projectId);
+        Long teacherId = ((AppUserDetails) userDetails).getId();
 
-    ProjectResponseDto projectDto =
-        new ProjectResponseDto(updatedProject.getId(), updatedProject.getTitle(),
-            updatedProject.getDescription(), null, null, updatedProject.isApprovedForDefense());
+        if (!projectService.isProjectBelongsToTeacher(projectId, teacherId)) {
+            log.error("Project with id: {} does not belong to teacher with id: {}", projectId, teacherId);
+            throw new IllegalArgumentException(
+                    "Project not found with id: " + projectId + " for teacher with id: " + teacherId);
+        }
 
+        Project updatedProject = projectService.approve(projectId);
 
-    return new ResponseEntity<>(projectDto, HttpStatus.OK);
+        ProjectResponseDto projectDto = new ProjectResponseDto(updatedProject.getId(), updatedProject.getTitle(),
+                updatedProject.getDescription(), null, null, updatedProject.isApprovedForDefense());
 
-  }
+        return new ResponseEntity<>(projectDto, HttpStatus.OK);
+
+    }
 
 }
