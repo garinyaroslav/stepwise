@@ -29,102 +29,103 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ExplanatoryNoteItemController {
 
-  private final ExplanatoryNoteItemService explanatoryNoteItemService;
+    private final ExplanatoryNoteItemService explanatoryNoteItemService;
 
-  @PostMapping(path = "/draft", consumes = "multipart/form-data")
-  @PreAuthorize("hasRole('ROLE_STUDENT')")
-  public ResponseEntity<Void> createExplanatoryNoteItem(@RequestPart("projectId") String projectId,
-      @RequestPart("file") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails)
-      throws Exception {
-    Long currentUserId = ((AppUserDetails) userDetails).getId();
-    log.info("Creating explanatory note item with file: {}, userId: {}, porjectId: {}",
-        file.getOriginalFilename(), currentUserId, projectId);
+    @PostMapping(path = "/draft", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<Void> createExplanatoryNoteItem(@RequestPart("projectId") String projectId,
+            @RequestPart("file") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails)
+            throws Exception {
+        Long currentUserId = ((AppUserDetails) userDetails).getId();
+        log.info("Creating explanatory note item with file: {}, userId: {}, porjectId: {}",
+                file.getOriginalFilename(), currentUserId, projectId);
 
-    explanatoryNoteItemService.draftItem(currentUserId, Long.valueOf(projectId), file);
+        explanatoryNoteItemService.draftItem(currentUserId, Long.valueOf(projectId), file);
 
-    return new ResponseEntity<>(HttpStatus.CREATED);
-  }
-
-  @PostMapping("/submit/{id}")
-  @PreAuthorize("hasRole('ROLE_STUDENT')")
-  public ResponseEntity<Void> submitExplanatoryNoteItem(@PathVariable Long id,
-      @AuthenticationPrincipal UserDetails userDetails) throws Exception {
-    Long currentStudentId = ((AppUserDetails) userDetails).getId();
-
-    log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentStudentId);
-
-    if (!explanatoryNoteItemService.isItemBelongsToStudent(id, currentStudentId)) {
-      log.error("Unauthorized access attempt by userId: {}, itemId: {}", currentStudentId, id);
-      throw new IllegalArgumentException(
-          "Unauthorized access to item submission by userId: " + currentStudentId);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    explanatoryNoteItemService.submitItem(id);
+    @PostMapping("/submit/{id}")
+    @PreAuthorize("hasRole('ROLE_STUDENT')")
+    public ResponseEntity<Void> submitExplanatoryNoteItem(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+        Long currentStudentId = ((AppUserDetails) userDetails).getId();
 
-    return new ResponseEntity<>(HttpStatus.OK);
-  }
+        log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentStudentId);
 
-  @PostMapping("/approve/{id}")
-  @PreAuthorize("hasRole('ROLE_TEACHER')")
-  public ResponseEntity<Void> approveExplanatoryNoteItem(@PathVariable Long id,
-      @AuthenticationPrincipal UserDetails userDetails) throws Exception {
-    Long currentTeacherId = ((AppUserDetails) userDetails).getId();
+        if (!explanatoryNoteItemService.isItemBelongsToStudent(id, currentStudentId)) {
+            log.error("Unauthorized access attempt by userId: {}, itemId: {}", currentStudentId, id);
+            throw new IllegalArgumentException(
+                    "Unauthorized access to item submission by userId: " + currentStudentId);
+        }
 
-    log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
+        explanatoryNoteItemService.submitItem(id);
 
-    if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
-      log.error("Cannot approve item with id: {}, by teacher with id: {}", id, currentTeacherId);
-      throw new IllegalArgumentException(
-          "Cannot approve item with id: " + id + " by teacher with id: " + currentTeacherId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    explanatoryNoteItemService.approveItem(id);
+    @PostMapping("/approve/{id}")
+    @PreAuthorize("hasRole('ROLE_TEACHER')")
+    public ResponseEntity<Void> approveExplanatoryNoteItem(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+        Long currentTeacherId = ((AppUserDetails) userDetails).getId();
 
-    return new ResponseEntity<>(HttpStatus.OK);
-  }
+        log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
 
+        if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
+            log.error("Cannot approve item with id: {}, by teacher with id: {}", id, currentTeacherId);
+            throw new IllegalArgumentException(
+                    "Cannot approve item with id: " + id + " by teacher with id: " + currentTeacherId);
+        }
 
-  @PostMapping("/reject/{id}")
-  @PreAuthorize("hasRole('ROLE_TEACHER')")
-  public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id,
-      @RequestBody RejectItemDto rejectItemDto, @AuthenticationPrincipal UserDetails userDetails)
-      throws Exception {
-    Long currentTeacherId = ((AppUserDetails) userDetails).getId();
+        explanatoryNoteItemService.approveItem(id);
 
-    log.info("Rejecting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
-
-    if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
-      log.error("Cannot reject item with id: {}, by teacher with id: {}", id, currentTeacherId);
-      throw new IllegalArgumentException(
-          "Cannot reject item with id: " + id + " by teacher with id: " + currentTeacherId);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    explanatoryNoteItemService.rejectItem(id, rejectItemDto.getTeacherComment());
+    @PostMapping("/reject/{id}")
+    @PreAuthorize("hasRole('ROLE_TEACHER')")
+    public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id,
+            @RequestBody RejectItemDto rejectItemDto, @AuthenticationPrincipal UserDetails userDetails)
+            throws Exception {
+        Long currentTeacherId = ((AppUserDetails) userDetails).getId();
 
-    return new ResponseEntity<>(HttpStatus.OK);
-  }
+        log.info("Rejecting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
 
-  @GetMapping("/file")
-  @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
-  public ResponseEntity<InputStreamResource> downloadItemFile(
-      @AuthenticationPrincipal UserDetails userDetails, @RequestParam(required = false) Long userId,
-      @RequestParam Long projectId, @RequestParam Long itemId) throws Exception {
-    AppUserDetails appUserDetails = (AppUserDetails) userDetails;
+        if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
+            log.error("Cannot reject item with id: {}, by teacher with id: {}", id, currentTeacherId);
+            throw new IllegalArgumentException(
+                    "Cannot reject item with id: " + id + " by teacher with id: " + currentTeacherId);
+        }
 
-    log.info("Downloading item file for userId: {}, projectId: {}, itemId: {}", userId, projectId,
-        itemId);
+        explanatoryNoteItemService.rejectItem(id, rejectItemDto.getTeacherComment());
 
-    if (appUserDetails.getRole() == UserRole.STUDENT && appUserDetails.getId().equals(userId)) {
-      log.warn("Unauthorized access attempt by userId: {}, projectId: {}, itemId: {}",
-          appUserDetails.getId(), projectId, itemId);
-      throw new IllegalArgumentException("Unauthorized access to item file");
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    Long ownerId = userId == null ? appUserDetails.getId() : userId;
+    @GetMapping("/file")
+    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
+    public ResponseEntity<InputStreamResource> downloadItemFile(
+            @AuthenticationPrincipal UserDetails userDetails, @RequestParam(required = false) Long userId,
+            @RequestParam Long projectId, @RequestParam Long itemId) throws Exception {
+        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
 
-    InputStream inputStream = explanatoryNoteItemService.getItemFile(ownerId, projectId, itemId);
+        log.info("Downloading item file for userId: {}, projectId: {}, itemId: {}", userId, projectId,
+                itemId);
 
-    return new ResponseEntity<>(new InputStreamResource(inputStream), HttpStatus.OK);
-  }
+        System.out.println(userId);
+        System.out.println(appUserDetails.getId());
+        if (appUserDetails.getRole() == UserRole.STUDENT && appUserDetails.getId().equals(userId)) {
+            log.warn("Unauthorized access attempt by userId: {}, projectId: {}, itemId: {}",
+                    appUserDetails.getId(), projectId, itemId);
+            throw new IllegalArgumentException("Unauthorized access to item file");
+        }
+
+        Long ownerId = userId == null ? appUserDetails.getId() : userId;
+
+        InputStream inputStream = explanatoryNoteItemService.getItemFile(ownerId, projectId, itemId);
+
+        return new ResponseEntity<>(new InputStreamResource(inputStream), HttpStatus.OK);
+    }
 
 }

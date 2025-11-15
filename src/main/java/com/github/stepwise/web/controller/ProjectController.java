@@ -51,7 +51,7 @@ public class ProjectController {
     }
 
     @GetMapping("/{projectId}")
-    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_TEACHER', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN')")
     public ResponseEntity<ProjectResponseDto> getStudentProject(@PathVariable Long projectId,
             @AuthenticationPrincipal UserDetails userDetails) {
         log.info("Fetching project, project id: {}", projectId);
@@ -80,6 +80,33 @@ public class ProjectController {
                 student.getProfile().getMiddleName());
 
         List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
+                .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
+                        item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
+                        item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
+                .toList();
+
+        ProjectResponseDto projectDto = new ProjectResponseDto(project.getId(), project.getTitle(),
+                project.getDescription(), owner, items, project.isApprovedForDefense());
+
+        return new ResponseEntity<>(projectDto, HttpStatus.OK);
+    }
+
+    @GetMapping("/{projectId}/teacher")
+    @PreAuthorize("hasRole('ROLE_TEACHER')")
+    public ResponseEntity<ProjectResponseDto> getStudentProjectForTeacher(@PathVariable Long projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("Fetching project, project id: {}", projectId);
+
+        Project project = projectService.getByProjectId(projectId);
+
+        User student = project.getStudent();
+
+        UserResponseDto owner = new UserResponseDto(student.getId(), student.getUsername(),
+                student.getEmail(), student.getProfile().getFirstName(), student.getProfile().getLastName(),
+                student.getProfile().getMiddleName());
+
+        List<ExplanatoryNoteItemResponseDto> items = project.getItems().stream()
+                .filter(item -> item.getStatus() != ItemStatus.DRAFT)
                 .map(item -> new ExplanatoryNoteItemResponseDto(item.getId(), item.getOrderNumber(),
                         item.getStatus(), item.getFileName(), item.getTeacherComment(), item.getDraftedAt(),
                         item.getSubmittedAt(), item.getApprovedAt(), item.getRejectedAt()))
