@@ -21,159 +21,160 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ExplanatoryNoteItemService {
 
-  private final ProjectRepository projectRepository;
+    private final ProjectRepository projectRepository;
 
-  private final ExplanatoryNoteRepository explanatoryNoteRepository;
+    private final ExplanatoryNoteRepository explanatoryNoteRepository;
 
-  private final FileUploadConfig fileUploadConfig;
+    private final FileUploadConfig fileUploadConfig;
 
-  private final StorageService storageService;
+    private final StorageService storageService;
 
-  @Transactional
-  public void draftItem(Long userId, Long projectId, MultipartFile file) throws Exception {
-    log.info("Creating explanatory note item for userId: {}, projectId: {}, file: {}", userId,
-        projectId, file.getOriginalFilename());
+    @Transactional
+    public void draftItem(Long userId, Long projectId, MultipartFile file) throws Exception {
+        log.info("Creating explanatory note item for userId: {}, projectId: {}, file: {}", userId,
+                projectId, file.getOriginalFilename());
 
-    if (!fileUploadConfig.getAllowedMimeTypes().contains(file.getContentType()))
-      throw new IllegalArgumentException(
-          "Only allowed file types are: " + fileUploadConfig.getAllowedMimeTypes());
+        if (!fileUploadConfig.getAllowedMimeTypes().contains(file.getContentType()))
+            throw new IllegalArgumentException(
+                    "Only allowed file types are: " + fileUploadConfig.getAllowedMimeTypes());
 
-    Project project = projectRepository.findById(projectId)
-        .orElseThrow(() -> new IllegalArgumentException("Project not found with id: " + projectId));
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Project not found with id: " + projectId));
 
-    if (project.getStudent().getId() != userId)
-      throw new IllegalArgumentException(
-          "User with id " + userId + " is not the owner of project with id: " + projectId);
+        if (project.getStudent().getId() != userId)
+            throw new IllegalArgumentException(
+                    "User with id " + userId + " is not the owner of project with id: " + projectId);
 
-    List<ExplanatoryNoteItem> items = project.getItems();
+        List<ExplanatoryNoteItem> items = project.getItems();
 
-    if (items.size() >= (int) project.getAcademicWork().getCountOfChapters()
-        && (items.getLast().getStatus() == ItemStatus.SUBMITTED
-            || items.getLast().getStatus() == ItemStatus.APPROVED))
-      throw new IllegalArgumentException("Project already has all items submitted");
+        if (items.size() >= (int) project.getAcademicWork().getCountOfChapters()
+                && (items.getLast().getStatus() == ItemStatus.SUBMITTED
+                        || items.getLast().getStatus() == ItemStatus.APPROVED))
+            throw new IllegalArgumentException("Project already has all items submitted");
 
-    if (items.size() > 0 && (items.getLast().getStatus() == ItemStatus.SUBMITTED))
-      throw new IllegalArgumentException("Cannot submit more than one item at a time");
+        if (items.size() > 0 && (items.getLast().getStatus() == ItemStatus.SUBMITTED))
+            throw new IllegalArgumentException("Cannot submit more than one item at a time");
 
-    ExplanatoryNoteItem newItem;
+        ExplanatoryNoteItem newItem;
 
-    if (items.size() == 0 || items.getLast().getStatus() == ItemStatus.APPROVED) {
-      newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, file.getOriginalFilename(),
-          LocalDateTime.now(), project);
+        if (items.size() == 0 || items.getLast().getStatus() == ItemStatus.APPROVED) {
+            newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, file.getOriginalFilename(),
+                    LocalDateTime.now(), project);
 
-      items.add(newItem);
-    } else if (items.getLast().getStatus() == ItemStatus.DRAFT
-        || items.getLast().getStatus() == ItemStatus.REJECTED) {
-      newItem = items.getLast();
+            items.add(newItem);
+        } else if (items.getLast().getStatus() == ItemStatus.DRAFT
+                || items.getLast().getStatus() == ItemStatus.REJECTED) {
+            storageService.deleteExplanatoryFile(userId, projectId,
+                    items.getLast().getId(), items.getLast().getFileName());
 
-      newItem.setFileName(file.getOriginalFilename());
-      newItem.setDraftedAt(LocalDateTime.now());
-      newItem.setStatus(ItemStatus.DRAFT);
-      newItem.setFileName(file.getOriginalFilename());
-      newItem.setTeacherComment(null);
-    } else
-      throw new IllegalArgumentException(
-          "Cannot create draft item for project with id: " + projectId);
+            newItem = items.getLast();
 
-    Project savedProject = projectRepository.save(project);
+            newItem.setDraftedAt(LocalDateTime.now());
+            newItem.setStatus(ItemStatus.DRAFT);
+            newItem.setFileName(file.getOriginalFilename());
+            newItem.setTeacherComment(null);
+        } else
+            throw new IllegalArgumentException(
+                    "Cannot create draft item for project with id: " + projectId);
 
-    Long newExplanatoryNoteItemId = savedProject.getItems().stream()
-        .max(Comparator.comparingInt(ExplanatoryNoteItem::getOrderNumber))
-        .orElseThrow(() -> new RuntimeException("Failed to define last item ID")).getId();
+        Project savedProject = projectRepository.save(project);
 
-    log.info("Explanatory note item created successfully for projectId: {}, itemId: {}",
-        savedProject.getId(), newItem.getId());
+        Long newExplanatoryNoteItemId = savedProject.getItems().stream()
+                .max(Comparator.comparingInt(ExplanatoryNoteItem::getOrderNumber))
+                .orElseThrow(() -> new RuntimeException("Failed to define last item ID")).getId();
 
-    storageService.uploadExplanatoryFile(userId, projectId, newExplanatoryNoteItemId, file);
-  }
+        log.info("Explanatory note item created successfully for projectId: {}, itemId: {}",
+                savedProject.getId(), newItem.getId());
 
-  public void submitItem(Long itemId) {
-    log.info("Submitting explanatory note item with id: {}", itemId);
-
-    ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
-        () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
-
-    if (item.getStatus() != ItemStatus.DRAFT) {
-      log.error("Item with id: {} is not in DRAFT status, current status: {}", itemId,
-          item.getStatus());
-      throw new IllegalArgumentException("Item with id: " + itemId + " is not in DRAFT status");
+        storageService.uploadExplanatoryFile(userId, projectId, newExplanatoryNoteItemId, file);
     }
 
-    item.setStatus(ItemStatus.SUBMITTED);
-    item.setSubmittedAt(LocalDateTime.now());
+    public void submitItem(Long itemId) {
+        log.info("Submitting explanatory note item with id: {}", itemId);
 
-    explanatoryNoteRepository.save(item);
+        ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
+                () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
 
-    log.info("Explanatory note item with id: {} submitted successfully", itemId);
-  }
+        if (item.getStatus() != ItemStatus.DRAFT) {
+            log.error("Item with id: {} is not in DRAFT status, current status: {}", itemId,
+                    item.getStatus());
+            throw new IllegalArgumentException("Item with id: " + itemId + " is not in DRAFT status");
+        }
 
-  public void approveItem(Long itemId) {
-    log.info("Approving explanatory note item with id: {}", itemId);
+        item.setStatus(ItemStatus.SUBMITTED);
+        item.setSubmittedAt(LocalDateTime.now());
 
-    ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
-        () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+        explanatoryNoteRepository.save(item);
 
-    if (item.getStatus() != ItemStatus.SUBMITTED) {
-      log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
-          item.getStatus());
-      throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
+        log.info("Explanatory note item with id: {} submitted successfully", itemId);
     }
 
-    item.setStatus(ItemStatus.APPROVED);
-    item.setApprovedAt(LocalDateTime.now());
+    public void approveItem(Long itemId) {
+        log.info("Approving explanatory note item with id: {}", itemId);
 
-    explanatoryNoteRepository.save(item);
+        ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
+                () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
 
-    log.info("Explanatory note item with id: {} approved successfully", itemId);
-  }
+        if (item.getStatus() != ItemStatus.SUBMITTED) {
+            log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
+                    item.getStatus());
+            throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
+        }
 
-  public void rejectItem(Long itemId, String teacherComment) {
-    log.info("Rejecting explanatory note item with id: {}", itemId);
+        item.setStatus(ItemStatus.APPROVED);
+        item.setApprovedAt(LocalDateTime.now());
 
-    ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
-        () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+        explanatoryNoteRepository.save(item);
 
-    if (item.getStatus() != ItemStatus.SUBMITTED) {
-      log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
-          item.getStatus());
-      throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
+        log.info("Explanatory note item with id: {} approved successfully", itemId);
     }
 
-    item.setStatus(ItemStatus.REJECTED);
-    item.setTeacherComment(teacherComment);
-    item.setRejectedAt(LocalDateTime.now());
+    public void rejectItem(Long itemId, String teacherComment) {
+        log.info("Rejecting explanatory note item with id: {}", itemId);
 
-    explanatoryNoteRepository.save(item);
+        ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
+                () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
 
-    log.info("Explanatory note item with id: {} rejected successfully", itemId);
-  }
+        if (item.getStatus() != ItemStatus.SUBMITTED) {
+            log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
+                    item.getStatus());
+            throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
+        }
 
-  public InputStream getItemFile(Long userId, Long projectId, Long itemId) throws Exception {
-    ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
-        () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+        item.setStatus(ItemStatus.REJECTED);
+        item.setTeacherComment(teacherComment);
+        item.setRejectedAt(LocalDateTime.now());
 
-    InputStream inputStream =
-        storageService.downloadExplanatoryFile(userId, projectId, itemId, item.getFileName());
+        explanatoryNoteRepository.save(item);
 
-    if (inputStream == null) {
-      log.error("File not found for userId: {}, projectId; {}, itemId: {}", userId, projectId,
-          itemId);
-      throw new IllegalArgumentException("File not found for item with id: " + itemId);
+        log.info("Explanatory note item with id: {} rejected successfully", itemId);
     }
 
-    return inputStream;
-  }
+    public InputStream getItemFile(Long userId, Long projectId, Long itemId) throws Exception {
+        ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
+                () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
 
-  public boolean isItemBelongsToStudent(Long itemId, Long studentId) {
-    log.info("Checking if item with id: {} belongs to student with id: {}", itemId, studentId);
+        InputStream inputStream = storageService.downloadExplanatoryFile(userId, projectId, itemId, item.getFileName());
 
-    return explanatoryNoteRepository.existsByIdAndUserId(itemId, studentId);
-  }
+        if (inputStream == null) {
+            log.error("File not found for userId: {}, projectId; {}, itemId: {}", userId, projectId,
+                    itemId);
+            throw new IllegalArgumentException("File not found for item with id: " + itemId);
+        }
 
-  public boolean isItemBelongsToTeacher(Long itemId, Long teacherId) {
-    log.info("Checking if item with id: {}, belongs to teacher with id: {}", itemId, teacherId);
+        return inputStream;
+    }
 
-    return explanatoryNoteRepository.existsByIdAndTeacherId(itemId, teacherId);
-  }
+    public boolean isItemBelongsToStudent(Long itemId, Long studentId) {
+        log.info("Checking if item with id: {} belongs to student with id: {}", itemId, studentId);
+
+        return explanatoryNoteRepository.existsByIdAndUserId(itemId, studentId);
+    }
+
+    public boolean isItemBelongsToTeacher(Long itemId, Long teacherId) {
+        log.info("Checking if item with id: {}, belongs to teacher with id: {}", itemId, teacherId);
+
+        return explanatoryNoteRepository.existsByIdAndTeacherId(itemId, teacherId);
+    }
 
 }

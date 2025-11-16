@@ -110,20 +110,18 @@ public class ExplanatoryNoteItemController {
             @RequestParam Long projectId, @RequestParam Long itemId) throws Exception {
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
 
-        log.info("Downloading item file for userId: {}, projectId: {}, itemId: {}", userId, projectId,
+        Long targetUserId = userId == null ? appUserDetails.getId() : userId;
+
+        log.info("Downloading item file for userId: {}, projectId: {}, itemId: {}", targetUserId, projectId,
                 itemId);
 
-        System.out.println(userId);
-        System.out.println(appUserDetails.getId());
-        if (appUserDetails.getRole() == UserRole.STUDENT && appUserDetails.getId().equals(userId)) {
+        if (appUserDetails.getRole() == UserRole.STUDENT && !appUserDetails.getId().equals(targetUserId)) {
             log.warn("Unauthorized access attempt by userId: {}, projectId: {}, itemId: {}",
                     appUserDetails.getId(), projectId, itemId);
             throw new IllegalArgumentException("Unauthorized access to item file");
         }
 
-        Long ownerId = userId == null ? appUserDetails.getId() : userId;
-
-        InputStream inputStream = explanatoryNoteItemService.getItemFile(ownerId, projectId, itemId);
+        InputStream inputStream = explanatoryNoteItemService.getItemFile(targetUserId, projectId, itemId);
 
         return new ResponseEntity<>(new InputStreamResource(inputStream), HttpStatus.OK);
     }
