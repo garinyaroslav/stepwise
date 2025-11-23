@@ -17,6 +17,7 @@ import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -46,9 +47,16 @@ public class PasswordResetService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        Optional<PasswordResetToken> existingToken = tokenRepository.findByUserId(user.getId());
+
         String token = UUID.randomUUID().toString();
-        PasswordResetToken resetToken = new PasswordResetToken(token, user,
-                new Date(System.currentTimeMillis() + 3600000));
+        Date expiryDate = new Date(System.currentTimeMillis() + 3600000);
+
+        PasswordResetToken resetToken = existingToken.map(t -> {
+            t.setToken(token);
+            t.setExpiryDate(expiryDate);
+            return t;
+        }).orElseGet(() -> new PasswordResetToken(token, user, expiryDate));
 
         tokenRepository.save(resetToken);
 
