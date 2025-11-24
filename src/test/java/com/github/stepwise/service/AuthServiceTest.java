@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Map;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +21,8 @@ import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.repository.UserRepository;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.utils.JwtUtil;
+
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -134,49 +134,84 @@ class AuthServiceTest {
     }
 
     @Test
-    void getUserAndTokenByPrincipals_WithValidCredentials_ShouldReturnTokenAndUserInfo() {
+    void getUserByPrincipals_WithValidCredentials_ShouldReturnUser() {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
-        when(jwtUtils.generateToken("testuser")).thenReturn("jwt-token");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-        Map<String, Object> result = authService.getUserAndTokenByPrincipals(user);
+        User result = authService.getUserByPrincipals("testuser", "password");
 
         assertNotNull(result);
-        assertEquals("jwt-token", result.get("token"));
-        assertEquals("STUDENT", result.get("role"));
-        assertEquals(1L, result.get("userId"));
+        assertEquals(user.getId(), result.getId());
+        assertEquals(user.getUsername(), result.getUsername());
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtUtils, times(1)).generateToken("testuser");
+        verify(userRepository, times(1)).findById(1L);
     }
 
     @Test
-    void getUserAndTokenByPrincipals_WithInvalidCredentials_ShouldThrowException() {
+    void getUserByPrincipals_WithInvalidCredentials_ShouldThrowException() {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Invalid credentials"));
 
         BadCredentialsException exception = assertThrows(BadCredentialsException.class,
-                () -> authService.getUserAndTokenByPrincipals(user));
+                () -> authService.getUserByPrincipals("testuser", "wrongpassword"));
 
         assertEquals("Invalid credentials", exception.getMessage());
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtUtils, never()).generateToken(anyString());
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
-    void getUserAndTokenByPrincipals_ShouldCreateCorrectAuthenticationToken() {
+    void getUserByPrincipals_WhenUserNotFound_ShouldThrowException() {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
-        when(jwtUtils.generateToken("testuser")).thenReturn("jwt-token");
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-        authService.getUserAndTokenByPrincipals(user);
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> authService.getUserByPrincipals("testuser", "password"));
+
+        assertEquals("User not found", exception.getMessage());
+        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(userRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void getUserByPrincipals_ShouldCreateCorrectAuthenticationToken() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(userDetails);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        authService.getUserByPrincipals("testuser", "password");
 
         verify(authenticationManager, times(1)).authenticate(
                 argThat(token -> token instanceof UsernamePasswordAuthenticationToken &&
                         "testuser".equals(((UsernamePasswordAuthenticationToken) token).getPrincipal()) &&
                         "password".equals(((UsernamePasswordAuthenticationToken) token).getCredentials())));
+    }
+
+    @Test
+    void getTokenByUsername_ShouldGenerateToken() {
+        when(jwtUtils.generateToken("testuser")).thenReturn("jwt-token");
+
+        String result = authService.getTokenByUsername("testuser");
+
+        assertEquals("jwt-token", result);
+        verify(jwtUtils, times(1)).generateToken("testuser");
+    }
+
+    @Test
+    void getTokenByUsername_WithDifferentUsername_ShouldGenerateToken() {
+        when(jwtUtils.generateToken("anotheruser")).thenReturn("another-token");
+
+        String result = authService.getTokenByUsername("anotheruser");
+
+        assertEquals("another-token", result);
+        verify(jwtUtils, times(1)).generateToken("anotheruser");
     }
 }

@@ -13,4 +13,6 @@ public class SignInResponseDto {
 
     private String token;
 
+    private boolean temporaryPassword;
+
 }

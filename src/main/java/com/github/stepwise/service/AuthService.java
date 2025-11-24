@@ -1,6 +1,5 @@
 package com.github.stepwise.service;
 
-import java.util.Map;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,17 +42,18 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public Map<String, Object> getUserAndTokenByPrincipals(User user) {
+    public User getUserByPrincipals(String username, String password) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
+                new UsernamePasswordAuthenticationToken(username, password));
 
         AppUserDetails userDetails = (AppUserDetails) authentication.getPrincipal();
 
-        String token = jwtUtils.generateToken(userDetails.getUsername());
-        String role = userDetails.getRole().name();
-        Long userId = userDetails.getId();
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
 
-        return Map.of("token", token, "role", role, "userId", userId);
+    public String getTokenByUsername(String username) {
+        return jwtUtils.generateToken(username);
     }
 
 }

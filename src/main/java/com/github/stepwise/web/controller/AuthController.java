@@ -23,57 +23,54 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AuthController {
 
-  private final AuthService authService;
+    private final AuthService authService;
 
-  private final PasswordResetService passwordResetService;
+    private final PasswordResetService passwordResetService;
 
-  @PostMapping("/signin")
-  public ResponseEntity<SignInResponseDto> authenticateUser(@Valid @RequestBody SignInDto user) {
-    log.info("Authenticating user: {}", user.getUsername());
+    @PostMapping("/signin")
+    public SignInResponseDto authenticateUser(@Valid @RequestBody SignInDto signInDto) {
+        log.info("Authenticating user: {}", signInDto.getUsername());
 
-    Map<String, Object> userData =
-        authService.getUserAndTokenByPrincipals(new User(user.getUsername(), user.getPassword()));
+        User user = authService.getUserByPrincipals(signInDto.getUsername(), signInDto.getPassword());
+        String token = authService.getTokenByUsername(user.getUsername());
 
-    SignInResponseDto dto = new SignInResponseDto(
-        new UserResponseDto((Long) userData.get("id"), (String) userData.get("role")),
-        (String) userData.get("token"));
-
-    return new ResponseEntity<SignInResponseDto>(dto, HttpStatus.OK);
-  }
-
-  @PostMapping("/signup")
-  public ResponseEntity<Object> registerUser(@Valid @RequestBody SignUpDto userDto) {
-    log.info("Registering user: {}", userDto.getUsername());
-
-    if (authService.isUsernameTaken(userDto.getUsername())) {
-      log.warn("username {} is already taken", userDto.getUsername());
-      return new ResponseEntity<>(new MessageResponse("Error: Username is already taken"),
-          HttpStatus.CONFLICT);
+        return new SignInResponseDto(new UserResponseDto(user.getId(), user.getRole().name()), token,
+                user.getIsTempPassword());
     }
 
-    User registeredUser = authService.registerUser(new User(userDto.getUsername(),
-        userDto.getPassword(), userDto.getEmail(), userDto.getRole()));
+    @PostMapping("/signup")
+    public ResponseEntity<Object> registerUser(@Valid @RequestBody SignUpDto userDto) {
+        log.info("Registering user: {}", userDto.getUsername());
 
-    UserResponseDto resDto = new UserResponseDto(registeredUser.getId());
+        if (authService.isUsernameTaken(userDto.getUsername())) {
+            log.warn("username {} is already taken", userDto.getUsername());
+            return new ResponseEntity<>(new MessageResponse("Error: Username is already taken"),
+                    HttpStatus.CONFLICT);
+        }
 
-    return new ResponseEntity<>(resDto, HttpStatus.CREATED);
-  }
+        User registeredUser = authService.registerUser(new User(userDto.getUsername(),
+                userDto.getPassword(), userDto.getEmail(), userDto.getRole()));
 
-  @PostMapping("/password/reset-request")
-  public ResponseEntity<String> requestReset(@RequestParam String email) {
-    log.info("Password reset requested for email: {}", email);
-    passwordResetService.requestPasswordReset(email);
+        UserResponseDto resDto = new UserResponseDto(registeredUser.getId());
 
-    return new ResponseEntity<>("Reset link sent to email", HttpStatus.OK);
-  }
+        return new ResponseEntity<>(resDto, HttpStatus.CREATED);
+    }
 
-  @PostMapping("/password/reset")
-  public ResponseEntity<String> reset(@RequestBody @Valid ResetPasswrodDto resetPasswrodDto) {
-    log.info("Resetting password with token: {}", resetPasswrodDto.getToken());
-    passwordResetService.resetPassword(resetPasswrodDto.getToken(),
-        resetPasswrodDto.getNewPassword());
+    @PostMapping("/password/reset-request")
+    public ResponseEntity<String> requestReset(@RequestParam String email) {
+        log.info("Password reset requested for email: {}", email);
+        passwordResetService.requestPasswordReset(email);
 
-    return new ResponseEntity<>("Password reset successful", HttpStatus.OK);
-  }
+        return new ResponseEntity<>("Reset link sent to email", HttpStatus.OK);
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<String> reset(@RequestBody @Valid ResetPasswrodDto resetPasswrodDto) {
+        log.info("Resetting password with token: {}", resetPasswrodDto.getToken());
+        passwordResetService.resetPassword(resetPasswrodDto.getToken(),
+                resetPasswrodDto.getNewPassword());
+
+        return new ResponseEntity<>("Password reset successful", HttpStatus.OK);
+    }
 
 }
