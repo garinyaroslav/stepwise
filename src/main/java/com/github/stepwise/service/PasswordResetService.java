@@ -63,7 +63,7 @@ public class PasswordResetService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
         message.setFrom(fromEmail);
-        message.setSubject("Password Reset Request");
+        message.setSubject("Запрос на сброс пароля");
 
         message.setText(String.format(
                 "Ваш код для сброса парля: %s\nЕсли вы пользуетесь web-приложением перейдите по ссылке: %s",

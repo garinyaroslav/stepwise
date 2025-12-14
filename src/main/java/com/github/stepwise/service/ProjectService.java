@@ -2,10 +2,16 @@ package com.github.stepwise.service;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
+import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.ProjectRepository;
+import com.github.stepwise.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,6 +21,13 @@ import lombok.extern.slf4j.Slf4j;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+
+    private final UserRepository userRepository;
+
+    private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
 
     public Project updateProject(Project newProject) {
         log.info("Updating project with id: {}, {}", newProject.getId(), newProject);
@@ -73,6 +86,25 @@ public class ProjectService {
         Project updatedProject = projectRepository.save(project);
 
         log.info("Project with id: {} approved successfully", updatedProject.getId());
+
+        try {
+            User user = userRepository.findById(updatedProject.getStudent().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Owner of the project is not found"));
+
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(user.getEmail());
+            message.setFrom(fromEmail);
+            message.setSubject("Ваша работа одобрена для защиты");
+
+            message.setText(String.format(
+                    "Ваша работа на тему: \"%s\" допущена к защите. Пожалуйста, свяжитесь с вашим научным руководителем для дальнейших инструкций.",
+                    updatedProject.getTitle()));
+            mailSender.send(message);
+
+            log.info("Email was sended on this email {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send approval email for project id: {}", projectId, e);
+        }
 
         return updatedProject;
     }
