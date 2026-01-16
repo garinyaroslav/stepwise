@@ -38,18 +38,25 @@ public class AcademicWorkController {
     public ResponseEntity<Void> createWork(@Valid @RequestBody CreateWorkDto workDto) {
         log.info("Creating new academic work: {}", workDto);
 
-        var newAcademicWork = new AcademicWork(workDto.getTitle(), workDto.getDescription(),
-                workDto.getType(), workDto.getChapters().size());
+        AcademicWork newAcademicWork = AcademicWork.builder()
+                .title(workDto.getTitle())
+                .description(workDto.getDescription())
+                .type(workDto.getType())
+                .countOfChapters(workDto.getChapters().size())
+                .build();
 
         List<AcademicWorkChapter> chapters = workDto.getChapters().stream()
-                .map(dto -> new AcademicWorkChapter(dto.getTitle(),
-                        dto.getIndex(), dto.getDescription(), newAcademicWork, dto.getDeadline()))
+                .map(WorkChapterDto::toEntity)
+                .map(chapter -> {
+                    chapter.setAcademicWork(newAcademicWork);
+                    return chapter;
+                })
                 .toList();
 
         academicWorkService.create(newAcademicWork, chapters, workDto.getGroupId(),
                 workDto.getTeacherId());
 
-        return new ResponseEntity<Void>(HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/group/{groupId}")
@@ -58,16 +65,11 @@ public class AcademicWorkController {
         log.info("Fetching academic works for group with id: {}", groupId);
 
         List<AcademicWork> works = academicWorkService.getByGroupId(groupId);
-
         List<WorkResponseDto> worksDto = works.stream()
-                .map(work -> new WorkResponseDto(work.getId(), work.getTitle(), work.getDescription(),
-                        work.getCountOfChapters(), work.getType(), work.getTeacher().getEmail(),
-                        work.getTeacher().getProfile().getFirstName(),
-                        work.getTeacher().getProfile().getLastName(),
-                        work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), null))
+                .map(WorkResponseDto::fromEntity)
                 .toList();
 
-        return new ResponseEntity<>(worksDto, HttpStatus.OK);
+        return ResponseEntity.ok(worksDto);
     }
 
     @GetMapping("/teacher/{teacherId}")
@@ -78,51 +80,41 @@ public class AcademicWorkController {
         log.info("Fetching academic work for teacher with id: {}, and group with id: {}", teacherId, groupId);
 
         List<AcademicWork> works = academicWorkService.getByTeacherAndGroupId(teacherId, groupId);
-
         List<WorkResponseDto> worksDto = works.stream()
-                .map(work -> new WorkResponseDto(work.getId(), work.getTitle(), work.getDescription(),
-                        work.getCountOfChapters(), work.getType(), work.getTeacher().getEmail(),
-                        work.getTeacher().getProfile().getFirstName(),
-                        work.getTeacher().getProfile().getLastName(),
-                        work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), null))
+                .map(WorkResponseDto::fromEntity)
                 .toList();
 
-        return new ResponseEntity<>(worksDto, HttpStatus.OK);
+        return ResponseEntity.ok(worksDto);
     }
 
     @GetMapping("/student")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<List<WorkResponseDto>> getStudentWorks(
-            @RequestParam(required = false) String id, @AuthenticationPrincipal UserDetails userDetails) {
+            @RequestParam(required = false) String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
         Long studentIdToUse = id == null ? appUserDetails.getId() : Long.valueOf(id);
 
         if (appUserDetails.getRole() == UserRole.STUDENT
                 && !studentIdToUse.equals(appUserDetails.getId())) {
-            log.error("Student {} is tryint to access works of student with id: {}",
+            log.error("Student {} is trying to access works of student with id: {}",
                     appUserDetails.getId(), studentIdToUse);
-            throw new IllegalArgumentException("Access denied: student with id " + appUserDetails.getId()
-                    + " cannot access works of student with id " + studentIdToUse);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         if (appUserDetails.getRole() != UserRole.STUDENT && studentIdToUse == null) {
-            log.error("studnetId is null");
+            log.error("studentId is null");
             throw new IllegalArgumentException("Student ID cannot be null");
         }
 
         log.info("Fetching academic works for student with id: {}", studentIdToUse);
 
         List<AcademicWork> works = academicWorkService.getByStudentId(studentIdToUse);
-
         List<WorkResponseDto> worksDto = works.stream()
-                .map(work -> new WorkResponseDto(work.getId(), work.getTitle(), work.getDescription(),
-                        work.getCountOfChapters(), work.getType(), work.getTeacher().getEmail(),
-                        work.getTeacher().getProfile().getFirstName(),
-                        work.getTeacher().getProfile().getLastName(),
-                        work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), null))
+                .map(WorkResponseDto::fromEntity)
                 .toList();
 
-        return new ResponseEntity<>(worksDto, HttpStatus.OK);
+        return ResponseEntity.ok(worksDto);
     }
 
     @GetMapping("/{workId}")
@@ -131,19 +123,8 @@ public class AcademicWorkController {
         log.info("Fetching academic work with id: {}", workId);
 
         AcademicWork work = academicWorkService.getById(workId);
+        WorkResponseDto workDto = WorkResponseDto.fromEntityWithChapters(work);
 
-        List<WorkChapterDto> chaptersDto = work.getAcademicWorkChapters().stream()
-                .map(chapter -> new WorkChapterDto(chapter.getIndexOfChapter(), chapter.getTitle(),
-                        chapter.getDescription(), chapter.getDeadline()))
-                .toList();
-
-        WorkResponseDto workDto = new WorkResponseDto(work.getId(), work.getTitle(),
-                work.getDescription(), work.getCountOfChapters(), work.getType(),
-                work.getTeacher().getEmail(), work.getTeacher().getProfile().getFirstName(),
-                work.getTeacher().getProfile().getLastName(),
-                work.getTeacher().getProfile().getMiddleName(), work.getGroup().getName(), chaptersDto);
-
-        return new ResponseEntity<>(workDto, HttpStatus.OK);
+        return ResponseEntity.ok(workDto);
     }
-
 }

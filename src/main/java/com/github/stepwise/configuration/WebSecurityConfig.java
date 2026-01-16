@@ -23,55 +23,55 @@ import com.github.stepwise.security.UserDetailsServiceImpl;
 @Configuration
 @EnableMethodSecurity
 public class WebSecurityConfig {
-  @Autowired
-  UserDetailsServiceImpl userDetailsService;
-  @Autowired
-  private AuthEntryPointJwt unauthorizedHandler;
+    @Autowired
+    UserDetailsServiceImpl userDetailsService;
+    @Autowired
+    private AuthEntryPointJwt unauthorizedHandler;
 
-  @Bean
-  public AuthTokenFilter authenticationJwtTokenFilter() {
-    return new AuthTokenFilter();
-  }
+    @Bean
+    public AuthTokenFilter authenticationJwtTokenFilter() {
+        return new AuthTokenFilter();
+    }
 
-  @Bean
-  public AuthenticationManager authenticationManager(
-      AuthenticationConfiguration authenticationConfiguration) throws Exception {
-    return authenticationConfiguration.getAuthenticationManager();
-  }
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
 
-  @Bean
-  public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
-  }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-  @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    // TODO: get url form application properties
-    configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
-    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    configuration.setAllowedHeaders(Arrays.asList("*"));
-    configuration.setAllowCredentials(true);
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
-  }
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // TODO: get url form application properties
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
-  @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.disable())
-        .cors(
-            cors -> cors.configurationSource(corsConfigurationSource()))
-        .exceptionHandling(
-            exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
-        .sessionManagement(sessionManagement -> sessionManagement
-            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(
-            authorizeRequests -> authorizeRequests.requestMatchers("/api/auth/**", "/swagger-ui/**",
-                "/v3/api-docs/**", "api/auth/password/**").permitAll().anyRequest()
-                .authenticated());
-    http.addFilterBefore(authenticationJwtTokenFilter(),
-        UsernamePasswordAuthenticationFilter.class);
-    return http.build();
-  }
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable())
+                .cors(
+                        cors -> cors.configurationSource(corsConfigurationSource()))
+                .exceptionHandling(
+                        exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(sessionManagement -> sessionManagement
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(
+                        authorizeRequests -> authorizeRequests.requestMatchers("/api/auth/**", "/swagger-ui/**",
+                                "/v3/api-docs/**", "/api/auth/password/**").permitAll().anyRequest()
+                                .authenticated());
+        http.addFilterBefore(authenticationJwtTokenFilter(),
+                UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
 }
