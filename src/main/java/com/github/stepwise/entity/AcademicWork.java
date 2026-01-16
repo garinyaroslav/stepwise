@@ -53,9 +53,11 @@ public class AcademicWork {
     @JoinColumn(name = "group_id", nullable = false)
     private StudyGroup group;
 
+    @Builder.Default
     @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<AcademicWorkChapter> academicWorkChapters = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projects = new ArrayList<>();
 

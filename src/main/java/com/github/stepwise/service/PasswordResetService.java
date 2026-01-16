@@ -1,6 +1,5 @@
 package com.github.stepwise.service;
 
-import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -12,6 +11,7 @@ import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.PasswordResetTokenRepository;
 import com.github.stepwise.repository.UserRepository;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;

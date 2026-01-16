@@ -39,6 +39,7 @@ public class User {
     @Column(name = "temp_password")
     private String tempPassword;
 
+    @Builder.Default
     @Column(name = "is_temp_password", nullable = false)
     private Boolean isTempPassword = true;
 
@@ -49,6 +50,7 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
+    @Builder.Default
     @ManyToMany(mappedBy = "students")
     private List<StudyGroup> groups = new ArrayList<>();
 

@@ -43,9 +43,11 @@ public class Project {
     @JoinColumn(name = "academic_work_id", nullable = false)
     private AcademicWork academicWork;
 
+    @Builder.Default
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<ExplanatoryNoteItem> items = new ArrayList<>();
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean isApprovedForDefense = false;
 

@@ -31,6 +31,7 @@ public class ExplanatoryNoteItem {
     @Column(nullable = false)
     private Integer orderNumber;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ItemStatus status = ItemStatus.DRAFT;
