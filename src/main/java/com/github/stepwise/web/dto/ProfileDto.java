@@ -1,14 +1,19 @@
 package com.github.stepwise.web.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import com.github.stepwise.entity.Profile;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProfileDto {
@@ -31,5 +36,15 @@ public class ProfileDto {
 
     @Size(min = 2, max = 50, message = "address must be between 2 and 50 characters")
     private String address;
+
+    public Profile toEntity() {
+        return Profile.builder()
+                .firstName(this.firstName)
+                .lastName(this.lastName)
+                .middleName(this.middleName)
+                .phoneNumber(this.phoneNumber)
+                .address(this.address)
+                .build();
+    }
 
 }

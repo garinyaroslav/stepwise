@@ -29,62 +29,60 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StudyGroupController {
 
-  private final StudyGroupService studyGroupService;
+    private final StudyGroupService studyGroupService;
 
-  @PostMapping
-  @PreAuthorize("hasRole('ROLE_ADMIN')")
-  public ResponseEntity<Void> createGroup(@Valid @RequestBody CreateGroupDto groupDto) {
-    log.info("Creating group with name: {}", groupDto.getName());
+    @PostMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> createGroup(@Valid @RequestBody CreateGroupDto groupDto) {
+        log.info("Creating group with name: {}", groupDto.getName());
 
-    studyGroupService.create(groupDto.getName(), groupDto.getStudentIds());
+        studyGroupService.create(groupDto.getName(), groupDto.getStudentIds());
 
-    return new ResponseEntity<Void>(HttpStatus.CREATED);
-  }
+        return new ResponseEntity<Void>(HttpStatus.CREATED);
+    }
 
-  @GetMapping
-  @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
-  public ResponseEntity<List<GroupResponseDto>> getAllGroups(
-      @RequestParam(required = false) String search) {
-    log.info("Getting all gorups with search: {}", search);
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
+    public ResponseEntity<List<GroupResponseDto>> getAllGroups(
+            @RequestParam(required = false) String search) {
+        log.info("Getting all gorups with search: {}", search);
 
-    List<StudyGroup> groups = studyGroupService.findAll(search);
+        List<StudyGroup> groups = studyGroupService.findAll(search);
 
-    List<GroupResponseDto> groupDtos = groups.stream().map(
-        group -> new GroupResponseDto(group.getId(), group.getName(), group.getStudents().size()))
-        .toList();
+        List<GroupResponseDto> groupDtos = groups.stream().map(
+                group -> new GroupResponseDto(group.getId(), group.getName(), group.getStudents().size()))
+                .toList();
 
-    return new ResponseEntity<>(groupDtos, HttpStatus.OK);
-  }
+        return new ResponseEntity<>(groupDtos, HttpStatus.OK);
+    }
 
-  @GetMapping("/{groupId}")
-  @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
-  public ResponseEntity<StudyGroupResponseDto> getGroup(@PathVariable String groupId) {
-    log.info("Getting grpup with id: {}", groupId);
+    @GetMapping("/{groupId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
+    public ResponseEntity<StudyGroupResponseDto> getGroup(@PathVariable String groupId) {
+        log.info("Getting grpup with id: {}", groupId);
 
-    StudyGroup group = studyGroupService.findById(Long.valueOf(groupId));
+        StudyGroup group = studyGroupService.findById(Long.valueOf(groupId));
 
-    StudyGroupResponseDto groupDto = new StudyGroupResponseDto(group.getId(), group.getName(),
-        group.getStudents().stream().map(user -> new UserResponseDto(user.getId())).toList());
+        StudyGroupResponseDto groupDto = new StudyGroupResponseDto(group.getId(), group.getName(),
+                group.getStudents().stream().map(user -> UserResponseDto.builder().id(user.getId()).build()).toList());
 
-    return new ResponseEntity<>(groupDto, HttpStatus.OK);
-  }
+        return new ResponseEntity<>(groupDto, HttpStatus.OK);
+    }
 
-  @PutMapping
-  @PreAuthorize("hasRole('ROLE_ADMIN')")
-  public ResponseEntity<StudyGroupResponseDto> updateGroup(
-      @Valid @RequestBody UpdateGroupDto groupDto) {
-    log.info("Updating group with id: {}", groupDto.getId());
+    @PutMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<StudyGroupResponseDto> updateGroup(
+            @Valid @RequestBody UpdateGroupDto groupDto) {
+        log.info("Updating group with id: {}", groupDto.getId());
 
-    StudyGroup updatedStudyGroup =
-        studyGroupService.update(groupDto.getId(), groupDto.getStudentIds());
+        StudyGroup updatedStudyGroup = studyGroupService.update(groupDto.getId(), groupDto.getStudentIds());
 
-    StudyGroupResponseDto updatedStudyGroupDto =
-        new StudyGroupResponseDto(updatedStudyGroup.getId(), updatedStudyGroup.getName(),
-            updatedStudyGroup.getStudents().stream()
-                .map(user -> new UserResponseDto(user.getUsername(), user.getEmail())).toList());
+        StudyGroupResponseDto updatedStudyGroupDto = new StudyGroupResponseDto(updatedStudyGroup.getId(),
+                updatedStudyGroup.getName(),
+                updatedStudyGroup.getStudents().stream()
+                        .map(user -> UserResponseDto.fromCredentials(user.getUsername(), user.getEmail())).toList());
 
-
-    return new ResponseEntity<StudyGroupResponseDto>(updatedStudyGroupDto, HttpStatus.OK);
-  }
+        return new ResponseEntity<StudyGroupResponseDto>(updatedStudyGroupDto, HttpStatus.OK);
+    }
 
 }

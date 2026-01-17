@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
 @Slf4j
-public class UserContoller {
+public class UserController {
 
     private final UserService userService;
 
@@ -44,25 +44,19 @@ public class UserContoller {
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String search) {
+
         log.info("Fetching all students");
+        PageRequest pageRequest = PageRequest.of(pageNumber, pageSize);
 
-        Page<User> users;
+        Page<User> users = (search != null && !search.isBlank())
+                ? userService.getAllStudents(search, pageRequest)
+                : userService.getAllStudents(pageRequest);
 
-        if (search != null && !search.isBlank()) {
-            users = userService.getAllStudents(search, PageRequest.of(pageNumber, pageSize));
-        } else {
-            users = userService.getAllStudents(PageRequest.of(pageNumber, pageSize));
-        }
-
-        var content = users.getContent().stream()
-                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), null,
-                        user.getProfile().getFirstName(), user.getProfile().getLastName(),
-                        user.getProfile().getMiddleName(), user.getProfile().getPhoneNumber(),
-                        user.getProfile().getAddress()))
+        List<UserResponseDto> content = users.stream()
+                .map(UserResponseDto::fromUser)
                 .toList();
 
-        return new ResponseEntity<>(new PageResponse<UserResponseDto>(content, users.getTotalPages()),
-                HttpStatus.OK);
+        return ResponseEntity.ok(new PageResponse<>(content, users.getTotalPages()));
     }
 
     @GetMapping("/teacher")
@@ -71,65 +65,46 @@ public class UserContoller {
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String search) {
+
         log.info("Fetching all teachers");
+        PageRequest pageRequest = PageRequest.of(pageNumber, pageSize);
 
-        Page<User> users;
+        Page<User> users = (search != null && !search.isBlank())
+                ? userService.getAllTeachers(search, pageRequest)
+                : userService.getAllTeachers(pageRequest);
 
-        if (search != null && !search.isBlank()) {
-            users = userService.getAllTeachers(search, PageRequest.of(pageNumber, pageSize));
-        } else {
-            users = userService.getAllTeachers(PageRequest.of(pageNumber, pageSize));
-        }
-
-        var content = users.getContent().stream()
-                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), null,
-                        user.getProfile().getFirstName(), user.getProfile().getLastName(),
-                        user.getProfile().getMiddleName(), user.getProfile().getPhoneNumber(),
-                        user.getProfile().getAddress()))
+        List<UserResponseDto> content = users.stream()
+                .map(UserResponseDto::fromUser)
                 .toList();
 
-        return new ResponseEntity<>(new PageResponse<UserResponseDto>(content, users.getTotalPages()),
-                HttpStatus.OK);
+        return ResponseEntity.ok(new PageResponse<>(content, users.getTotalPages()));
     }
 
     @GetMapping("/student/{groupId}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<List<UserResponseDto>> getAllStudentsByGroupId(@PathVariable Long groupId) {
         log.info("Fetching users by groupId: {}", groupId);
-
-        if (groupId == null) {
-            log.error("Group ID is null");
-            throw new IllegalArgumentException("Group ID id null");
-        }
+        validateGroupId(groupId);
 
         List<User> users = userService.getAllStudentsByGroupId(groupId);
-
         List<UserResponseDto> usersDto = users.stream()
-                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(),
-                        user.getUsername(), user.getProfile().getFirstName(), user.getProfile().getLastName(),
-                        user.getProfile().getMiddleName(), user.getProfile().getPhoneNumber(),
-                        user.getProfile().getAddress()))
+                .map(UserResponseDto::fromUserWithFullInfo)
                 .toList();
 
-        return new ResponseEntity<>(usersDto, HttpStatus.OK);
+        return ResponseEntity.ok(usersDto);
     }
 
     @GetMapping("/student/{groupId}/export")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public ResponseEntity<byte[]> exportUsersWithTempPasswords(@PathVariable Long groupId) {
         log.info("Exporting users with temporary passwords for groupId: {}", groupId);
-
-        if (groupId == null) {
-            log.error("Group ID is null");
-            throw new IllegalArgumentException("Group ID is null");
-        }
+        validateGroupId(groupId);
 
         try {
             List<User> users = userService.getUsersWithTempPasswordByGroupId(groupId);
-
             byte[] excelData = excelExportService.exportUsersWithTempPasswords(users);
 
-            String filename = "users_passwords_" + groupId + ".xlsx";
+            String filename = String.format("users_passwords_%d.xlsx", groupId);
 
             return ResponseEntity.ok()
                     .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
@@ -144,47 +119,49 @@ public class UserContoller {
 
     @PutMapping("/profile")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
-    public ResponseEntity<UserResponseDto> updateProfile(@Valid @RequestBody ProfileDto profileDto,
+    public ResponseEntity<UserResponseDto> updateProfile(
+            @Valid @RequestBody ProfileDto profileDto,
             @AuthenticationPrincipal UserDetails userDetails) {
+
         log.info("Updating user profile: {}", profileDto);
-
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
-        Long userIdForUpdate = appUserDetails.getId();
 
-        if (appUserDetails.getRole() == UserRole.ADMIN) {
-            if (profileDto.getId() == null)
-                throw new IllegalArgumentException("Profile ID must not be null for student or teacher");
-
-            userIdForUpdate = profileDto.getId();
-        }
-
-        User user = userService.updateProfile(userIdForUpdate, profileDto.getFirstName(),
+        Long userIdForUpdate = getUserIdForUpdate(profileDto, appUserDetails);
+        User updatedUser = userService.updateProfile(userIdForUpdate, profileDto.getFirstName(),
                 profileDto.getLastName(), profileDto.getMiddleName(), profileDto.getPhoneNumber(),
                 profileDto.getAddress());
 
-        UserResponseDto userDto = new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(),
-                user.getUsername(), user.getProfile().getFirstName(), user.getProfile().getLastName(),
-                user.getProfile().getMiddleName(), user.getProfile().getPhoneNumber(),
-                user.getProfile().getAddress());
-
-        return new ResponseEntity<>(userDto, HttpStatus.OK);
+        return ResponseEntity.ok(UserResponseDto.fromUserWithFullInfo(updatedUser));
     }
 
     @GetMapping("/profile/my")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<UserResponseDto> getMyProfile(
             @AuthenticationPrincipal UserDetails userDetails) {
-        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
 
+        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
         log.info("Fetching my profile, userId: {}", appUserDetails.getId());
 
-        User u = userService.findById(appUserDetails.getId());
-
-        UserResponseDto userDto = new UserResponseDto(u.getId(), u.getUsername(), u.getEmail(),
-                u.getProfile().getFirstName(), u.getProfile().getLastName(), u.getProfile().getMiddleName(),
-                u.getProfile().getPhoneNumber(), u.getProfile().getAddress());
-
-        return new ResponseEntity<>(userDto, HttpStatus.OK);
+        User user = userService.findById(appUserDetails.getId());
+        return ResponseEntity.ok(UserResponseDto.fromUserWithFullInfo(user));
     }
 
+    private void validateGroupId(Long groupId) {
+        if (groupId == null) {
+            log.error("Group ID is null");
+            throw new IllegalArgumentException("Group ID must not be null");
+        }
+    }
+
+    private Long getUserIdForUpdate(ProfileDto profileDto, AppUserDetails userDetails) {
+        if (userDetails.getRole() == UserRole.ADMIN && profileDto.getId() != null) {
+            return profileDto.getId();
+        }
+
+        if (userDetails.getRole() == UserRole.ADMIN && profileDto.getId() == null) {
+            throw new IllegalArgumentException("Profile ID must not be null for admin");
+        }
+
+        return userDetails.getId();
+    }
 }

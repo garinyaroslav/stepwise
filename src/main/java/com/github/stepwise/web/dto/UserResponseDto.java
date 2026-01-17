@@ -1,68 +1,59 @@
 package com.github.stepwise.web.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.github.stepwise.entity.User;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserResponseDto {
 
-  private Long id;
+    private Long id;
+    private String username;
+    private String email;
+    private String role;
+    private String firstName;
+    private String lastName;
+    private String middleName;
+    private String phoneNumber;
+    private String address;
 
-  private String username;
+    public static UserResponseDto fromUser(User user) {
+        return UserResponseDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .firstName(user.getProfile().getFirstName())
+                .lastName(user.getProfile().getLastName())
+                .middleName(user.getProfile().getMiddleName())
+                .build();
+    }
 
-  private String email;
+    public static UserResponseDto fromUserWithFullInfo(User user) {
+        UserResponseDto dto = fromUser(user);
+        dto.setPhoneNumber(user.getProfile().getPhoneNumber());
+        dto.setAddress(user.getProfile().getAddress());
+        return dto;
+    }
 
-  private String role;
+    public static UserResponseDto fromIdAndRole(Long id, String role) {
+        return UserResponseDto.builder()
+                .id(id)
+                .role(role)
+                .build();
+    }
 
-  private String firstName;
-
-  private String lastName;
-
-  private String middleName;
-
-  private String phoneNumber;
-
-  private String address;
-
-  public UserResponseDto(Long id) {
-    this.id = id;
-  }
-
-  public UserResponseDto(String username, String email) {
-    this.username = username;
-    this.email = email;
-  }
-
-  public UserResponseDto(Long id, String role) {
-    this.id = id;
-    this.role = role;
-  }
-
-  public UserResponseDto(Long id, String username, String email, String firstName, String lastName,
-      String middleName) {
-    this.id = id;
-    this.username = username;
-    this.email = email;
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.middleName = middleName;
-  }
-
-  public UserResponseDto(Long id, String username, String email, String firstName, String lastName,
-      String middleName, String phoneNumber, String address) {
-    this.id = id;
-    this.username = username;
-    this.email = email;
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.middleName = middleName;
-    this.phoneNumber = phoneNumber;
-    this.address = address;
-  }
-
+    public static UserResponseDto fromCredentials(String username, String email) {
+        return UserResponseDto.builder()
+                .username(username)
+                .email(email)
+                .build();
+    }
 }

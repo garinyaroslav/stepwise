@@ -3,7 +3,6 @@ package com.github.stepwise.web.dto;
 import java.util.ArrayList;
 import java.util.List;
 import com.github.stepwise.entity.ProjectType;
-// import com.github.stepwise.utils.annotation.EnumValidator;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -26,8 +25,6 @@ public class CreateWorkDto {
     @Size(min = 3, max = 500, message = "description must be between 3 and 500 characters if provided")
     private String description;
 
-    // @EnumValidator(enumClass = ProjectType.class, message = "Invalid project
-    // type")
     private ProjectType type;
 
     @NotNull(message = "groupId is required")

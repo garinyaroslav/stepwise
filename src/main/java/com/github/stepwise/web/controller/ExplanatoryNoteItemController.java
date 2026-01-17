@@ -55,8 +55,7 @@ public class ExplanatoryNoteItemController {
 
         if (!explanatoryNoteItemService.isItemBelongsToStudent(id, currentStudentId)) {
             log.error("Unauthorized access attempt by userId: {}, itemId: {}", currentStudentId, id);
-            throw new IllegalArgumentException(
-                    "Unauthorized access to item submission by userId: " + currentStudentId);
+            throw new IllegalArgumentException("Unauthorized access to item");
         }
 
         explanatoryNoteItemService.submitItem(id);

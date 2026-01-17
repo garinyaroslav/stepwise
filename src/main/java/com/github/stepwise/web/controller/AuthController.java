@@ -1,6 +1,5 @@
 package com.github.stepwise.web.controller;
 
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +33,7 @@ public class AuthController {
         User user = authService.getUserByPrincipals(signInDto.getUsername(), signInDto.getPassword());
         String token = authService.getTokenByUsername(user.getUsername());
 
-        return new SignInResponseDto(new UserResponseDto(user.getId(), user.getRole().name()), token,
+        return new SignInResponseDto(UserResponseDto.fromIdAndRole(user.getId(), user.getRole().name()), token,
                 user.getIsTempPassword());
     }
 
@@ -51,7 +50,9 @@ public class AuthController {
         User registeredUser = authService.registerUser(new User(userDto.getUsername(),
                 userDto.getPassword(), userDto.getEmail(), userDto.getRole()));
 
-        UserResponseDto resDto = new UserResponseDto(registeredUser.getId());
+        UserResponseDto resDto = UserResponseDto.builder()
+                .id(registeredUser.getId())
+                .build();
 
         return new ResponseEntity<>(resDto, HttpStatus.CREATED);
     }
