@@ -94,7 +94,7 @@ public class UserController {
         return ResponseEntity.ok(usersDto);
     }
 
-    @GetMapping("/student/{groupId}/export")
+    @GetMapping("/student/{groupId}/exportation")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     public ResponseEntity<byte[]> exportUsersWithTempPasswords(@PathVariable Long groupId) {
         log.info("Exporting users with temporary passwords for groupId: {}", groupId);

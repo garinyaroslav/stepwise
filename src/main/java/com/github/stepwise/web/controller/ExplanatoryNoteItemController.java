@@ -45,7 +45,7 @@ public class ExplanatoryNoteItemController {
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @PostMapping("/submit/{id}")
+    @PostMapping("/{id}/submition")
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public ResponseEntity<Void> submitExplanatoryNoteItem(@PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) throws Exception {
@@ -63,7 +63,7 @@ public class ExplanatoryNoteItemController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/approve/{id}")
+    @PostMapping("/{id}/approval")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<Void> approveExplanatoryNoteItem(@PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) throws Exception {
@@ -82,7 +82,7 @@ public class ExplanatoryNoteItemController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    @PostMapping("/reject/{id}")
+    @PostMapping("/{id}/rejection")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id,
             @RequestBody RejectItemDto rejectItemDto, @AuthenticationPrincipal UserDetails userDetails)

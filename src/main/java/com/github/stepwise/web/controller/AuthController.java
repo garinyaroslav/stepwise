@@ -26,7 +26,7 @@ public class AuthController {
 
     private final PasswordResetService passwordResetService;
 
-    @PostMapping("/signin")
+    @PostMapping("/sessions")
     public SignInResponseDto authenticateUser(@Valid @RequestBody SignInDto signInDto) {
         log.info("Authenticating user: {}", signInDto.getUsername());
 
@@ -37,7 +37,7 @@ public class AuthController {
                 user.getTempPassword() != null);
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/users")
     public ResponseEntity<Object> registerUser(@Valid @RequestBody SignUpDto userDto) {
         log.info("Registering user: {}", userDto.getUsername());
 
@@ -57,7 +57,7 @@ public class AuthController {
         return new ResponseEntity<>(resDto, HttpStatus.CREATED);
     }
 
-    @PostMapping("/password/reset-request")
+    @PostMapping("/password-reset-requests")
     public ResponseEntity<String> requestReset(@RequestParam String email) {
         log.info("Password reset requested for email: {}", email);
         passwordResetService.requestPasswordReset(email);
@@ -65,7 +65,7 @@ public class AuthController {
         return new ResponseEntity<>("Reset link sent to email", HttpStatus.OK);
     }
 
-    @PostMapping("/password/reset")
+    @PatchMapping("/passwords")
     public ResponseEntity<String> reset(@RequestBody @Valid ResetPasswrodDto resetPasswrodDto) {
         log.info("Resetting password with token: {}", resetPasswrodDto.getToken());
         passwordResetService.resetPassword(resetPasswrodDto.getToken(),

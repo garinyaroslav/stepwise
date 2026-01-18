@@ -110,7 +110,7 @@ public class ProjectController {
         return ResponseEntity.ok(projectDtos);
     }
 
-    @PostMapping("/{projectId}/approve")
+    @PostMapping("/{projectId}/approval")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<ProjectResponseDto> approveProject(
             @PathVariable Long projectId,
