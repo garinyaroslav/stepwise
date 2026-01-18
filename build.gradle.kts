@@ -15,7 +15,7 @@ java {
 }
 
 jacoco {
-    toolVersion = "0.8.11"
+    toolVersion = "0.8.14"
 }
 
 configurations {
