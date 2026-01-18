@@ -50,7 +50,6 @@ class PasswordResetServiceTest {
                 .username("testuser")
                 .email("test@example.com")
                 .password("oldpassword")
-                .isTempPassword(true)
                 .tempPassword("temppass")
                 .build();
 
@@ -103,7 +102,6 @@ class PasswordResetServiceTest {
         verify(tokenRepository, times(1)).delete(resetToken);
 
         assertEquals(encodedPassword, user.getPassword());
-        assertFalse(user.getIsTempPassword());
         assertNull(user.getTempPassword());
     }
 
@@ -151,7 +149,6 @@ class PasswordResetServiceTest {
                 .username("tempuser")
                 .email("temp@example.com")
                 .password("oldpassword")
-                .isTempPassword(true)
                 .tempPassword("oldtemppassword")
                 .build();
 
@@ -166,7 +163,6 @@ class PasswordResetServiceTest {
 
         verify(userRepository, times(1)).save(userWithTempPassword);
         assertEquals(encodedPassword, userWithTempPassword.getPassword());
-        assertFalse(userWithTempPassword.getIsTempPassword());
         assertNull(userWithTempPassword.getTempPassword());
     }
 
@@ -181,7 +177,6 @@ class PasswordResetServiceTest {
                 .username("normaluser")
                 .email("normal@example.com")
                 .password("oldpassword")
-                .isTempPassword(false)
                 .tempPassword(null)
                 .build();
 
@@ -196,7 +191,6 @@ class PasswordResetServiceTest {
 
         verify(userRepository, times(1)).save(userWithoutTempPassword);
         assertEquals(encodedPassword, userWithoutTempPassword.getPassword());
-        assertFalse(userWithoutTempPassword.getIsTempPassword());
         assertNull(userWithoutTempPassword.getTempPassword());
     }
 

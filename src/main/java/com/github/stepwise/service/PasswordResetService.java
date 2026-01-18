@@ -6,6 +6,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.github.stepwise.entity.PasswordResetToken;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.PasswordResetTokenRepository;
@@ -73,6 +75,7 @@ public class PasswordResetService {
         log.info("Password reset link sent to {}", email);
     }
 
+    @Transactional
     public void resetPassword(
             String token,
             @NotBlank(message = "password must not be blank") @Size(min = 6, max = 100, message = "password must be between 6 and 100 characters") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=]).{8,}$", message = "Password is not valid: password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character") String newPassword) {
@@ -86,9 +89,8 @@ public class PasswordResetService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
 
-        if (user.getIsTempPassword()) {
+        if (user.getTempPassword() != null) {
             user.setTempPassword(null);
-            user.setIsTempPassword(false);
         }
 
         userRepository.save(user);

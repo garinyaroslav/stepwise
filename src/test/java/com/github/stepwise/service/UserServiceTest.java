@@ -56,7 +56,7 @@ class UserServiceTest {
                 .id(1L)
                 .username("student1")
                 .role(UserRole.STUDENT)
-                .isTempPassword(true)
+                .tempPassword("pass")
                 .profile(profile)
                 .build();
 
@@ -64,7 +64,7 @@ class UserServiceTest {
                 .id(2L)
                 .username("teacher1")
                 .role(UserRole.TEACHER)
-                .isTempPassword(false)
+                .tempPassword(null)
                 .profile(profile)
                 .build();
 
@@ -187,14 +187,14 @@ class UserServiceTest {
                 .id(3L)
                 .username("student3")
                 .role(UserRole.STUDENT)
-                .isTempPassword(true)
+                .tempPassword("pass")
                 .build();
 
         User studentWithoutTempPassword = User.builder()
                 .id(4L)
                 .username("student4")
                 .role(UserRole.STUDENT)
-                .isTempPassword(false)
+                .tempPassword(null)
                 .build();
 
         StudyGroup groupWithMixedUsers = StudyGroup.builder()
@@ -210,7 +210,7 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("student3", result.get(0).getUsername());
-        assertTrue(result.get(0).getIsTempPassword());
+        assertTrue(result.get(0).getTempPassword() != null);
         verify(studyGroupRepository, times(1)).findById(2L);
     }
 

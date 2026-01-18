@@ -73,7 +73,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + groupId));
 
         return group.getStudents().stream()
-                .filter(user -> Boolean.TRUE.equals(user.getIsTempPassword()))
+                .filter(user -> Boolean.TRUE.equals(user.getTempPassword() != null))
                 .toList();
     }
 

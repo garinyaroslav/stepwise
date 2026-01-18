@@ -39,10 +39,6 @@ public class User {
     @Column(name = "temp_password")
     private String tempPassword;
 
-    @Builder.Default
-    @Column(name = "is_temp_password", nullable = false)
-    private Boolean isTempPassword = true;
-
     @Column(unique = true, nullable = false)
     private String email;
 

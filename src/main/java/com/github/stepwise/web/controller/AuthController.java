@@ -34,7 +34,7 @@ public class AuthController {
         String token = authService.getTokenByUsername(user.getUsername());
 
         return new SignInResponseDto(UserResponseDto.fromIdAndRole(user.getId(), user.getRole().name()), token,
-                user.getIsTempPassword());
+                user.getTempPassword() != null);
     }
 
     @PostMapping("/signup")
