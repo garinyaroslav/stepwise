@@ -25,49 +25,50 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "academic_work")
-public class AcademicWork {
+@Table(name = "template")
+public class WorkTemplate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // @Column(nullable = false)
-    // private String title;
+    @Column(nullable = false)
+    private String title;
 
-    // @Column(columnDefinition = "TEXT")
-    // private String description;
+    @Column(nullable = false)
+    private String workTitle;
 
-    // @Column(nullable = false)
-    // private Integer countOfChapters;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-    // @Enumerated(EnumType.STRING)
-    // @Column(nullable = false)
-    // private ProjectType type;
+    @Column(nullable = false)
+    private Integer countOfChapters;
 
-    // @ManyToOne
-    // @JoinColumn(name = "teacher_id")
-    // private User teacher;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProjectType type;
+
+    @ManyToOne
+    @JoinColumn(name = "teacher_id")
+    private User teacher;
 
     @ManyToOne
     @JoinColumn(name = "group_id", nullable = false)
     private StudyGroup group;
 
-    // @Builder.Default
-    // @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL,
-    // orphanRemoval = true, fetch = FetchType.EAGER)
-    // private List<AcademicWorkChapter> academicWorkChapters = new ArrayList<>();
+    @Builder.Default
+    @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<AcademicWorkChapter> academicWorkChapters = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projects = new ArrayList<>();
 
-    // public AcademicWork(String title, String description, ProjectType type,
-    // Integer countOfChapters) {
-    // this.title = title;
-    // this.description = description;
-    // this.type = type;
-    // this.countOfChapters = countOfChapters;
-    // }
+    public WorkTemplate(String title, String description, ProjectType type, Integer countOfChapters) {
+        this.title = title;
+        this.description = description;
+        this.type = type;
+        this.countOfChapters = countOfChapters;
+    }
 
 }
