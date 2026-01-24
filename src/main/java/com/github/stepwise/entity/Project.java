@@ -1,5 +1,6 @@
 package com.github.stepwise.entity;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.CascadeType;
@@ -50,6 +51,9 @@ public class Project {
     @Builder.Default
     @Column(nullable = false)
     private boolean isApprovedForDefense = false;
+
+    @Column
+    private LocalDateTime approvedForDefenseAt;
 
     public Project(Long id, String title, String description) {
         this.id = id;

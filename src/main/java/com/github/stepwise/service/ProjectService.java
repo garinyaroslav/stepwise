@@ -1,5 +1,6 @@
 package com.github.stepwise.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -82,6 +83,7 @@ public class ProjectService {
         }
 
         project.setApprovedForDefense(true);
+        project.setApprovedForDefenseAt(LocalDateTime.now());
 
         Project updatedProject = projectRepository.save(project);
 
