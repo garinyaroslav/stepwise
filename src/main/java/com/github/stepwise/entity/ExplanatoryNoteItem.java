@@ -55,7 +55,7 @@ public class ExplanatoryNoteItem {
     private LocalDateTime rejectedAt;
 
     @ManyToOne
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "student_project_id", nullable = false)
     private Project project;
 
     public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, String fileName,

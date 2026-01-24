@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @AllArgsConstructor
-@Table(name = "project")
+@Table(name = "student_project")
 public class Project {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
