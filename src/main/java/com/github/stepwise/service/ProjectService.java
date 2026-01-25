@@ -75,7 +75,7 @@ public class ProjectService {
 
         int approvedItemsCount = (int) project.getItems().stream()
                 .filter(item -> item.getStatus() == ItemStatus.APPROVED).count();
-        int workItemsCount = project.getAcademicWork().getAcademicWorkChapters().size();
+        int workItemsCount = project.getAcademicWork().getWorkTemplate().getWorkTemplateChapters().size();
 
         if (approvedItemsCount != workItemsCount) {
             log.error("Cannot approve project with id: {}. Not all items are approved.", projectId);

@@ -47,7 +47,7 @@ public class ExplanatoryNoteItemService {
 
         List<ExplanatoryNoteItem> items = project.getItems();
 
-        if (items.size() >= (int) project.getAcademicWork().getCountOfChapters()
+        if (items.size() >= (int) project.getAcademicWork().getWorkTemplate().getCountOfChapters()
                 && (items.getLast().getStatus() == ItemStatus.SUBMITTED
                         || items.getLast().getStatus() == ItemStatus.APPROVED))
             throw new IllegalArgumentException("Project already has all items submitted");

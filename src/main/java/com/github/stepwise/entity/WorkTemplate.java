@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "template")
+@Table(name = "work_template")
 public class WorkTemplate {
 
     @Id
@@ -33,13 +33,16 @@ public class WorkTemplate {
     private Long id;
 
     @Column(nullable = false)
-    private String title;
+    private String templateTitle;
+
+    @Column(columnDefinition = "TEXT")
+    private String templateDescription;
 
     @Column(nullable = false)
     private String workTitle;
 
     @Column(columnDefinition = "TEXT")
-    private String description;
+    private String workDescription;
 
     @Column(nullable = false)
     private Integer countOfChapters;
@@ -52,21 +55,17 @@ public class WorkTemplate {
     @JoinColumn(name = "teacher_id")
     private User teacher;
 
-    @ManyToOne
-    @JoinColumn(name = "group_id", nullable = false)
-    private StudyGroup group;
+    @Builder.Default
+    @OneToMany(mappedBy = "workTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AcademicWork> academicWorks = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<AcademicWorkChapter> academicWorkChapters = new ArrayList<>();
+    @OneToMany(mappedBy = "workTemplate", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<WorkTemplateChapter> workTemplateChapters = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Project> projects = new ArrayList<>();
-
-    public WorkTemplate(String title, String description, ProjectType type, Integer countOfChapters) {
-        this.title = title;
-        this.description = description;
+    public WorkTemplate(String workTitle, String workDescription, ProjectType type, Integer countOfChapters) {
+        this.workTitle = workTitle;
+        this.workDescription = workDescription;
         this.type = type;
         this.countOfChapters = countOfChapters;
     }

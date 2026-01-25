@@ -4,6 +4,8 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.stepwise.entity.AcademicWork;
 import com.github.stepwise.entity.ProjectType;
+import com.github.stepwise.entity.WorkTemplate;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,37 +40,40 @@ public class WorkResponseDto {
 
     private List<WorkChapterDto> chapters;
 
-    public static WorkResponseDto fromEntity(AcademicWork work) {
+    public static WorkResponseDto fromEntity(AcademicWork academicWork) {
+        WorkTemplate work = academicWork.getWorkTemplate();
         return WorkResponseDto.builder()
                 .id(work.getId())
-                .title(work.getTitle())
-                .description(work.getDescription())
+                .title(work.getWorkTitle())
+                .description(work.getWorkDescription())
                 .countOfChapters(work.getCountOfChapters())
                 .type(work.getType())
                 .teacherEmail(work.getTeacher().getEmail())
                 .teacherName(work.getTeacher().getProfile().getFirstName())
                 .teacherLastName(work.getTeacher().getProfile().getLastName())
                 .teacherMiddleName(work.getTeacher().getProfile().getMiddleName())
-                .groupName(work.getGroup().getName())
+                .groupName(academicWork.getGroup().getName())
                 .build();
     }
 
-    public static WorkResponseDto fromEntityWithChapters(AcademicWork work) {
-        List<WorkChapterDto> chapters = work.getAcademicWorkChapters().stream()
+    public static WorkResponseDto fromEntityWithChapters(AcademicWork acadmicWork) {
+        WorkTemplate work = acadmicWork.getWorkTemplate();
+
+        List<WorkChapterDto> chapters = work.getWorkTemplateChapters().stream()
                 .map(WorkChapterDto::fromEntity)
                 .toList();
 
         return WorkResponseDto.builder()
                 .id(work.getId())
-                .title(work.getTitle())
-                .description(work.getDescription())
+                .title(work.getWorkTitle())
+                .description(work.getWorkDescription())
                 .countOfChapters(work.getCountOfChapters())
                 .type(work.getType())
                 .teacherEmail(work.getTeacher().getEmail())
                 .teacherName(work.getTeacher().getProfile().getFirstName())
                 .teacherLastName(work.getTeacher().getProfile().getLastName())
                 .teacherMiddleName(work.getTeacher().getProfile().getMiddleName())
-                .groupName(work.getGroup().getName())
+                .groupName(acadmicWork.getGroup().getName())
                 .chapters(chapters)
                 .build();
     }

@@ -1,7 +1,9 @@
 package com.github.stepwise.web.dto;
 
 import java.time.LocalDateTime;
-import com.github.stepwise.entity.AcademicWorkChapter;
+
+import com.github.stepwise.entity.WorkTemplateChapter;
+
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -33,7 +35,7 @@ public class WorkChapterDto {
     @Future(message = "deadline must be a future date")
     private LocalDateTime deadline;
 
-    public static WorkChapterDto fromEntity(AcademicWorkChapter chapter) {
+    public static WorkChapterDto fromEntity(WorkTemplateChapter chapter) {
         return WorkChapterDto.builder()
                 .index(chapter.getIndexOfChapter())
                 .title(chapter.getTitle())
@@ -42,8 +44,8 @@ public class WorkChapterDto {
                 .build();
     }
 
-    public AcademicWorkChapter toEntity() {
-        return AcademicWorkChapter.builder()
+    public WorkTemplateChapter toEntity() {
+        return WorkTemplateChapter.builder()
                 .title(this.title)
                 .indexOfChapter(this.index)
                 .description(this.description)

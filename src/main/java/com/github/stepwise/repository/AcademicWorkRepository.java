@@ -13,8 +13,10 @@ public interface AcademicWorkRepository extends JpaRepository<AcademicWork, Long
     @Query("SELECT aw FROM AcademicWork aw JOIN aw.group g JOIN g.students s WHERE s.id = :studentId")
     List<AcademicWork> findByStudentId(@Param("studentId") Long studentId);
 
+    @Query("SELECT aw FROM AcademicWork aw WHERE aw.workTemplate.teacher.id = :teacherId")
     List<AcademicWork> findByTeacherId(Long teacherId);
 
+    @Query("SELECT aw FROM AcademicWork aw WHERE aw.group.id = :groupId AND aw.workTemplate.teacher.id = :teacherId")
     List<AcademicWork> findByGroupIdAndTeacherId(Long groupId, Long teacherId);
 
 }

@@ -7,14 +7,18 @@ import com.github.stepwise.repository.AcademicWorkRepository;
 import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.StudyGroupRepository;
 import com.github.stepwise.repository.UserRepository;
+import com.github.stepwise.repository.WorkTemplateRepository;
+
 import jakarta.transaction.Transactional;
 import com.github.stepwise.entity.AcademicWork;
-import com.github.stepwise.entity.AcademicWorkChapter;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.entity.User;
+import com.github.stepwise.entity.WorkTemplate;
+
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -29,28 +33,34 @@ public class AcademicWorkService {
 
     private final ProjectRepository projectRepository;
 
+    private final WorkTemplateRepository workTemplateRepository;
+
     @Transactional
-    public void create(AcademicWork academicWork, List<AcademicWorkChapter> chapters, Long groupId,
-            Long teacherId) {
-        log.info("Creating work: {}, chapters: {}, groupId: {}, teacherId: {}", academicWork, chapters,
-                groupId, teacherId);
+    public void create(Long workTemplateId, Long groupId) {
+        log.info("Creating work by template: {}, groupId: {}", workTemplateId, groupId);
 
-        StudyGroup group = studyGroupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + groupId));
+        CompletableFuture<StudyGroup> groupFuture = CompletableFuture
+                .supplyAsync(() -> studyGroupRepository.findById(groupId)
+                        .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + groupId)));
 
-        User teacher = userRepository.findById(teacherId)
-                .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + teacherId));
+        CompletableFuture<WorkTemplate> templateFuture = CompletableFuture.supplyAsync(() -> workTemplateRepository
+                .findById(workTemplateId)
+                .orElseThrow(() -> new IllegalArgumentException("Work template not found with id: " + workTemplateId)));
 
-        academicWork.setGroup(group);
-        academicWork.setTeacher(teacher);
-        academicWork.setAcademicWorkChapters(chapters);
+        StudyGroup group = groupFuture.join();
+        WorkTemplate template = templateFuture.join();
+
+        AcademicWork academicWork = AcademicWork.builder()
+                .group(group)
+                .workTemplate(template)
+                .build();
 
         academicWorkRepository.save(academicWork);
 
         List<Project> projects = new LinkedList<>();
 
         for (User student : group.getStudents()) {
-            projects.add(new Project("Мой проект по теме: " + academicWork.getTitle(), "Описание проекта",
+            projects.add(new Project("Мой проект по теме: " + template.getWorkTitle(), "Описание проекта",
                     student, academicWork));
         }
 

@@ -15,12 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 import com.github.stepwise.entity.AcademicWork;
-import com.github.stepwise.entity.AcademicWorkChapter;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.AcademicWorkService;
 import com.github.stepwise.web.dto.CreateWorkDto;
-import com.github.stepwise.web.dto.WorkChapterDto;
 import com.github.stepwise.web.dto.WorkResponseDto;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -35,26 +33,11 @@ public class AcademicWorkController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
-    public ResponseEntity<Void> createWork(@Valid @RequestBody CreateWorkDto workDto) {
+    public ResponseEntity<Void> createWork(@Valid @RequestBody CreateWorkDto workDto,
+            @AuthenticationPrincipal UserDetails userDetails) {
         log.info("Creating new academic work: {}", workDto);
 
-        AcademicWork newAcademicWork = AcademicWork.builder()
-                .title(workDto.getTitle())
-                .description(workDto.getDescription())
-                .type(workDto.getType())
-                .countOfChapters(workDto.getChapters().size())
-                .build();
-
-        List<AcademicWorkChapter> chapters = workDto.getChapters().stream()
-                .map(WorkChapterDto::toEntity)
-                .map(chapter -> {
-                    chapter.setAcademicWork(newAcademicWork);
-                    return chapter;
-                })
-                .toList();
-
-        academicWorkService.create(newAcademicWork, chapters, workDto.getGroupId(),
-                workDto.getTeacherId());
+        academicWorkService.create(workDto.getWorkTemplateId(), workDto.getGroupId());
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -75,8 +58,7 @@ public class AcademicWorkController {
     @GetMapping("/teacher/{teacherId}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<List<WorkResponseDto>> getWorksByTeacherId(@PathVariable Long teacherId,
-            @RequestParam(required = false) Long groupId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @RequestParam(required = false) Long groupId) {
         log.info("Fetching academic work for teacher with id: {}, and group with id: {}", teacherId, groupId);
 
         List<AcademicWork> works = academicWorkService.getByTeacherAndGroupId(teacherId, groupId);
