@@ -17,13 +17,19 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateWorkTemplateDto {
 
-    @NotNull(message = "title is required")
-    @NotBlank(message = "title must not be blank")
-    @Size(min = 3, max = 100, message = "title must be between 3 and 100 characters")
-    private String title;
+    @NotBlank(message = "workTitle must not be blank")
+    @Size(min = 3, max = 100, message = "workTitle must be between 3 and 100 characters")
+    private String workTitle;
 
-    @Size(min = 3, max = 500, message = "description must be between 3 and 500 characters if provided")
-    private String description;
+    @NotBlank(message = "templateTitle must not be blank")
+    @Size(min = 3, max = 100, message = "templateTitle must be between 3 and 100 characters")
+    private String templateTitle;
+
+    @Size(min = 3, max = 500, message = "workDescription must be between 3 and 500 characters if provided")
+    private String workDescription;
+
+    @Size(min = 3, max = 500, message = "templateDescription must be between 3 and 500 characters if provided")
+    private String templateDescription;
 
     private ProjectType type;
 
