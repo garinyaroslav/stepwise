@@ -3,6 +3,8 @@ package com.github.stepwise.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.github.stepwise.entity.User;
@@ -23,6 +25,15 @@ public class WorkTemplateService {
     private final WorkTemplateRepository workTemplateRepository;
 
     private final UserRepository userRepository;
+
+    public Page<WorkTemplate> findAllWithSearch(Pageable pageable, String search) {
+        log.info("Fetching work templates with search: {}", search);
+
+        if (search == null || search.isBlank())
+            return workTemplateRepository.findAll(pageable);
+
+        return workTemplateRepository.findAllWithSearch(pageable, search);
+    }
 
     public WorkTemplate create(CreateWorkTemplateDto dto) {
         log.info("Creating work template with title: {}", dto.getTemplateTitle());
@@ -51,6 +62,12 @@ public class WorkTemplateService {
                 .build();
 
         return workTemplateRepository.save(workTemplate);
+    }
+
+    public void delete(Long id) {
+        log.info("Deleting work template with id: {}", id);
+
+        workTemplateRepository.deleteById(id);
     }
 
 }

@@ -63,11 +63,4 @@ public class WorkTemplate {
     @OneToMany(mappedBy = "workTemplate", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<WorkTemplateChapter> workTemplateChapters = new ArrayList<>();
 
-    public WorkTemplate(String workTitle, String workDescription, ProjectType type, Integer countOfChapters) {
-        this.workTitle = workTitle;
-        this.workDescription = workDescription;
-        this.type = type;
-        this.countOfChapters = countOfChapters;
-    }
-
 }
