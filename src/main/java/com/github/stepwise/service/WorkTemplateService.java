@@ -13,6 +13,7 @@ import com.github.stepwise.entity.WorkTemplateChapter;
 import com.github.stepwise.repository.UserRepository;
 import com.github.stepwise.repository.WorkTemplateRepository;
 import com.github.stepwise.web.dto.CreateWorkTemplateDto;
+import com.github.stepwise.web.dto.UpdateWorkTemplateDto;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,12 +43,7 @@ public class WorkTemplateService {
                 .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + dto.getTeacherId()));
 
         List<WorkTemplateChapter> chapters = dto.getChapters().stream()
-                .map(chapterDto -> new WorkTemplateChapter(
-                        chapterDto.getTitle(),
-                        chapterDto.getIndex(),
-                        chapterDto.getDescription(),
-                        null,
-                        chapterDto.getDeadline()))
+                .map(chapterDto -> chapterDto.toEntity())
                 .collect(Collectors.toList());
 
         WorkTemplate workTemplate = WorkTemplate.builder()
@@ -62,6 +58,33 @@ public class WorkTemplateService {
                 .build();
 
         return workTemplateRepository.save(workTemplate);
+    }
+
+    public WorkTemplate update(Long id, UpdateWorkTemplateDto dto) {
+        log.info("Updating Template with title: {}", dto.getTemplateTitle());
+
+        WorkTemplate t = workTemplateRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Work template not found with id: " + id));
+
+        if (dto.getTemplateTitle() != null)
+            t.setTemplateTitle(dto.getTemplateTitle());
+        if (dto.getTemplateDescription() != null)
+            t.setTemplateDescription(dto.getTemplateDescription());
+        if (dto.getWorkTitle() != null)
+            t.setWorkTitle(dto.getWorkTitle());
+        if (dto.getWorkDescription() != null)
+            t.setWorkDescription(dto.getWorkDescription());
+        if (dto.getType() != null)
+            t.setType(dto.getType());
+        if (dto.getChapters() != null && !dto.getChapters().isEmpty()) {
+            List<WorkTemplateChapter> chapters = dto.getChapters().stream()
+                    .map(chapterDto -> chapterDto.toEntity())
+                    .collect(Collectors.toList());
+            t.setWorkTemplateChapters(chapters);
+            t.setCountOfChapters(chapters.size());
+        }
+
+        return workTemplateRepository.save(t);
     }
 
     public void delete(Long id) {
