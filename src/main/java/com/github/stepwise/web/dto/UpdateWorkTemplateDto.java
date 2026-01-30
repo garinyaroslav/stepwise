@@ -3,7 +3,6 @@ package com.github.stepwise.web.dto;
 import java.util.ArrayList;
 import java.util.List;
 import com.github.stepwise.entity.ProjectType;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,7 +27,6 @@ public class UpdateWorkTemplateDto {
 
     private ProjectType type;
 
-    @NotEmpty(message = "chapters cannot be empty")
     private List<WorkChapterDto> chapters = new ArrayList<>();
 
 }

@@ -40,7 +40,7 @@ public class WorkTemplateChapter {
     private LocalDateTime deadline;
 
     @ManyToOne
-    @JoinColumn(name = "academic_work_id", nullable = false)
+    @JoinColumn(name = "work_template_id", nullable = false)
     private WorkTemplate workTemplate;
 
     public WorkTemplateChapter(String title, Integer indexOfChapter, String description,

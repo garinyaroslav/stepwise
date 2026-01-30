@@ -42,10 +42,6 @@ public class WorkTemplateService {
         User teacher = userRepository.findById(dto.getTeacherId())
                 .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + dto.getTeacherId()));
 
-        List<WorkTemplateChapter> chapters = dto.getChapters().stream()
-                .map(chapterDto -> chapterDto.toEntity())
-                .collect(Collectors.toList());
-
         WorkTemplate workTemplate = WorkTemplate.builder()
                 .templateTitle(dto.getTemplateTitle())
                 .templateDescription(dto.getTemplateDescription())
@@ -54,14 +50,19 @@ public class WorkTemplateService {
                 .countOfChapters(dto.getChapters().size())
                 .type(dto.getType())
                 .teacher(teacher)
-                .workTemplateChapters(chapters)
                 .build();
+
+        List<WorkTemplateChapter> chapters = dto.getChapters().stream()
+                .map(chapterDto -> chapterDto.toEntity(workTemplate))
+                .collect(Collectors.toList());
+
+        workTemplate.setWorkTemplateChapters(chapters);
 
         return workTemplateRepository.save(workTemplate);
     }
 
     public WorkTemplate update(Long id, UpdateWorkTemplateDto dto) {
-        log.info("Updating Template with title: {}", dto.getTemplateTitle());
+        log.info("Updating Template with id: {}", id);
 
         WorkTemplate t = workTemplateRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Work template not found with id: " + id));
@@ -78,7 +79,7 @@ public class WorkTemplateService {
             t.setType(dto.getType());
         if (dto.getChapters() != null && !dto.getChapters().isEmpty()) {
             List<WorkTemplateChapter> chapters = dto.getChapters().stream()
-                    .map(chapterDto -> chapterDto.toEntity())
+                    .map(chapterDto -> chapterDto.toEntity(t))
                     .collect(Collectors.toList());
             t.setWorkTemplateChapters(chapters);
             t.setCountOfChapters(chapters.size());

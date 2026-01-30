@@ -2,6 +2,7 @@ package com.github.stepwise.web.dto;
 
 import java.time.LocalDateTime;
 
+import com.github.stepwise.entity.WorkTemplate;
 import com.github.stepwise.entity.WorkTemplateChapter;
 
 import jakarta.validation.constraints.Future;
@@ -44,12 +45,13 @@ public class WorkChapterDto {
                 .build();
     }
 
-    public WorkTemplateChapter toEntity() {
+    public WorkTemplateChapter toEntity(WorkTemplate parent) {
         return WorkTemplateChapter.builder()
                 .title(this.title)
                 .indexOfChapter(this.index)
                 .description(this.description)
                 .deadline(this.deadline)
+                .workTemplate(parent)
                 .build();
     }
 }

@@ -38,8 +38,8 @@ public class TemplateResDto {
 
         return TemplateResDto.builder()
                 .id(work.getId())
-                .title(work.getWorkTitle())
-                .description(work.getWorkDescription())
+                .title(work.getTemplateTitle())
+                .description(work.getTemplateDescription())
                 .workTitle(work.getWorkTitle())
                 .workDescription(work.getWorkDescription())
                 .type(work.getType())

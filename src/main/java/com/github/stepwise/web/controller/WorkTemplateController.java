@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,9 +31,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/teamplate")
+@RequestMapping("/api/template")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class WorkTemplateController {
 
     private final WorkTemplateService workTemplateService;
@@ -73,8 +75,8 @@ public class WorkTemplateController {
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_TEACHER')")
-    public ResponseEntity<TemplateResDto> updasteWorkTemplate(@Valid @RequestBody UpdateWorkTemplateDto reqDto,
-            @Positive @PathVariable Long id) {
+    public ResponseEntity<TemplateResDto> updateWorkTemplate(@Positive @PathVariable Long id,
+            @Valid @RequestBody UpdateWorkTemplateDto reqDto) {
         WorkTemplate template = workTemplateService.update(id, reqDto);
 
         return ResponseEntity.ok(TemplateResDto.fromEntity(template));
