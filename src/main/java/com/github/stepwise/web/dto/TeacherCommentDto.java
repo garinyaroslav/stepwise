@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class RejectItemDto {
+public class TeacherCommentDto {
 
-  @NotNull(message = "teacherComment is required")
-  @NotBlank(message = "teacherComment must not be blank")
-  @Size(max = 400, message = "teacherComment must not exceed 400 characters")
-  private String teacherComment;
+    @NotNull(message = "teacherComment is required")
+    @NotBlank(message = "teacherComment must not be blank")
+    @Size(max = 400, message = "teacherComment must not exceed 400 characters")
+    private String teacherComment;
 
 }

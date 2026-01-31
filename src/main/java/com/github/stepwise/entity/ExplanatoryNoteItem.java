@@ -1,6 +1,9 @@
 package com.github.stepwise.entity;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,31 +43,18 @@ public class ExplanatoryNoteItem {
     @Column(nullable = false)
     private String fileName;
 
-    @Column(columnDefinition = "TEXT")
-    private String teacherComment;
-
-    @Column(nullable = false)
-    private LocalDateTime draftedAt;
-
-    @Column
-    private LocalDateTime submittedAt;
-
-    @Column
-    private LocalDateTime approvedAt;
-
-    @Column
-    private LocalDateTime rejectedAt;
+    @Builder.Default
+    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ItemHistory> history = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "student_project_id", nullable = false)
     private Project project;
 
-    public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, String fileName,
-            LocalDateTime draftedAt, Project project) {
+    public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, String fileName, Project project) {
         this.orderNumber = orderNumber;
         this.status = status;
         this.fileName = fileName;
-        this.draftedAt = draftedAt;
         this.project = project;
     }
 

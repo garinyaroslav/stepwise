@@ -8,10 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.github.stepwise.configuration.FileUploadConfig;
 import com.github.stepwise.entity.ExplanatoryNoteItem;
+import com.github.stepwise.entity.ItemHistory;
 import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
+import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.ExplanatoryNoteRepository;
 import com.github.stepwise.repository.ProjectRepository;
+import com.github.stepwise.repository.UserRepository;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +32,8 @@ public class ExplanatoryNoteItemService {
     private final FileUploadConfig fileUploadConfig;
 
     private final StorageService storageService;
+
+    private final UserRepository userRepository;
 
     @Transactional
     public void draftItem(Long userId, Long projectId, MultipartFile file) throws Exception {
@@ -58,8 +64,19 @@ public class ExplanatoryNoteItemService {
         ExplanatoryNoteItem newItem;
 
         if (items.size() == 0 || items.getLast().getStatus() == ItemStatus.APPROVED) {
-            newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, file.getOriginalFilename(),
-                    LocalDateTime.now(), project);
+            newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, file.getOriginalFilename(), project);
+
+            User changedBy = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+            ItemHistory newItemHistory = ItemHistory.builder().item(newItem)
+                    .previousStatus(null)
+                    .newStatus(ItemStatus.DRAFT)
+                    .changedAt(LocalDateTime.now())
+                    .changedBy(changedBy)
+                    .build();
+
+            newItem.getHistory().add(newItemHistory);
 
             items.add(newItem);
         } else if (items.getLast().getStatus() == ItemStatus.DRAFT
@@ -69,10 +86,19 @@ public class ExplanatoryNoteItemService {
 
             newItem = items.getLast();
 
-            newItem.setDraftedAt(LocalDateTime.now());
+            User changedBy = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+
+            ItemHistory newItemHistory = ItemHistory.builder().item(newItem)
+                    .previousStatus(items.getLast().getStatus())
+                    .newStatus(ItemStatus.DRAFT)
+                    .changedAt(LocalDateTime.now())
+                    .changedBy(changedBy)
+                    .build();
+
+            newItem.getHistory().add(newItemHistory);
             newItem.setStatus(ItemStatus.DRAFT);
             newItem.setFileName(file.getOriginalFilename());
-            newItem.setTeacherComment(null);
         } else
             throw new IllegalArgumentException(
                     "Cannot create draft item for project with id: " + projectId);
@@ -89,11 +115,14 @@ public class ExplanatoryNoteItemService {
         storageService.uploadExplanatoryFile(userId, projectId, newExplanatoryNoteItemId, file);
     }
 
-    public void submitItem(Long itemId) {
+    public void submitItem(Long itemId, Long studentId) {
         log.info("Submitting explanatory note item with id: {}", itemId);
 
         ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
                 () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + studentId));
 
         if (item.getStatus() != ItemStatus.DRAFT) {
             log.error("Item with id: {} is not in DRAFT status, current status: {}", itemId,
@@ -101,19 +130,29 @@ public class ExplanatoryNoteItemService {
             throw new IllegalArgumentException("Item with id: " + itemId + " is not in DRAFT status");
         }
 
+        ItemHistory newItemHistory = ItemHistory.builder().item(item)
+                .previousStatus(item.getStatus())
+                .newStatus(ItemStatus.SUBMITTED)
+                .changedAt(LocalDateTime.now())
+                .changedBy(student)
+                .build();
+
+        item.getHistory().add(newItemHistory);
         item.setStatus(ItemStatus.SUBMITTED);
-        item.setSubmittedAt(LocalDateTime.now());
 
         explanatoryNoteRepository.save(item);
 
         log.info("Explanatory note item with id: {} submitted successfully", itemId);
     }
 
-    public void approveItem(Long itemId) {
+    public void approveItem(Long itemId, Long teacherId, String teacherComment) {
         log.info("Approving explanatory note item with id: {}", itemId);
 
         ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
                 () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + teacherId));
 
         if (item.getStatus() != ItemStatus.SUBMITTED) {
             log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
@@ -121,19 +160,30 @@ public class ExplanatoryNoteItemService {
             throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
         }
 
+        ItemHistory newItemHistory = ItemHistory.builder().item(item)
+                .previousStatus(item.getStatus())
+                .newStatus(ItemStatus.APPROVED)
+                .changedAt(LocalDateTime.now())
+                .changedBy(teacher)
+                .teacherComment(teacherComment)
+                .build();
+
+        item.getHistory().add(newItemHistory);
         item.setStatus(ItemStatus.APPROVED);
-        item.setApprovedAt(LocalDateTime.now());
 
         explanatoryNoteRepository.save(item);
 
         log.info("Explanatory note item with id: {} approved successfully", itemId);
     }
 
-    public void rejectItem(Long itemId, String teacherComment) {
+    public void rejectItem(Long itemId, Long teacherId, String teacherComment) {
         log.info("Rejecting explanatory note item with id: {}", itemId);
 
         ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
                 () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + teacherId));
 
         if (item.getStatus() != ItemStatus.SUBMITTED) {
             log.error("Item with id: {} is not in SUBMITTED status, current status: {}", itemId,
@@ -141,9 +191,16 @@ public class ExplanatoryNoteItemService {
             throw new IllegalArgumentException("Item with id: " + itemId + " is not in SUBMITTED status");
         }
 
+        ItemHistory newItemHistory = ItemHistory.builder().item(item)
+                .previousStatus(item.getStatus())
+                .newStatus(ItemStatus.REJECTED)
+                .changedAt(LocalDateTime.now())
+                .changedBy(teacher)
+                .teacherComment(teacherComment)
+                .build();
+
+        item.getHistory().add(newItemHistory);
         item.setStatus(ItemStatus.REJECTED);
-        item.setTeacherComment(teacherComment);
-        item.setRejectedAt(LocalDateTime.now());
 
         explanatoryNoteRepository.save(item);
 

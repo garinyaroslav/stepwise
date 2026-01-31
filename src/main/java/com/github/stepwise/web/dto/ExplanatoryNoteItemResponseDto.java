@@ -1,6 +1,7 @@
 package com.github.stepwise.web.dto;
 
-import java.time.LocalDateTime;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.stepwise.entity.ExplanatoryNoteItem;
 import com.github.stepwise.entity.ItemStatus;
@@ -25,15 +26,7 @@ public class ExplanatoryNoteItemResponseDto {
 
     private String fileName;
 
-    private String teacherComment;
-
-    private LocalDateTime draftedAt;
-
-    private LocalDateTime submittedAt;
-
-    private LocalDateTime approvedAt;
-
-    private LocalDateTime rejectedAt;
+    private List<HistoryItemDto> history;
 
     public static ExplanatoryNoteItemResponseDto fromEntity(ExplanatoryNoteItem item) {
         return ExplanatoryNoteItemResponseDto.builder()
@@ -41,11 +34,9 @@ public class ExplanatoryNoteItemResponseDto {
                 .orderNumber(item.getOrderNumber())
                 .status(item.getStatus())
                 .fileName(item.getFileName())
-                .teacherComment(item.getTeacherComment())
-                .draftedAt(item.getDraftedAt())
-                .submittedAt(item.getSubmittedAt())
-                .approvedAt(item.getApprovedAt())
-                .rejectedAt(item.getRejectedAt())
+                .history(item.getHistory().stream()
+                        .map(HistoryItemDto::fromEntity)
+                        .toList())
                 .build();
     }
 }

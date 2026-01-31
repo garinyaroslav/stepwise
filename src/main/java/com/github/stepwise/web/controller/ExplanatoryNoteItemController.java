@@ -19,7 +19,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.ExplanatoryNoteItemService;
-import com.github.stepwise.web.dto.RejectItemDto;
+import com.github.stepwise.web.dto.TeacherCommentDto;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,7 +60,7 @@ public class ExplanatoryNoteItemController {
             throw new IllegalArgumentException("Unauthorized access to item");
         }
 
-        explanatoryNoteItemService.submitItem(id);
+        explanatoryNoteItemService.submitItem(id, currentStudentId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -66,6 +68,7 @@ public class ExplanatoryNoteItemController {
     @PostMapping("/{id}/approval")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<Void> approveExplanatoryNoteItem(@PathVariable Long id,
+            @Valid @RequestBody TeacherCommentDto teacherCommentDto,
             @AuthenticationPrincipal UserDetails userDetails) throws Exception {
         Long currentTeacherId = ((AppUserDetails) userDetails).getId();
 
@@ -77,7 +80,7 @@ public class ExplanatoryNoteItemController {
                     "Cannot approve item with id: " + id + " by teacher with id: " + currentTeacherId);
         }
 
-        explanatoryNoteItemService.approveItem(id);
+        explanatoryNoteItemService.approveItem(id, currentTeacherId, teacherCommentDto.getTeacherComment());
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -85,7 +88,7 @@ public class ExplanatoryNoteItemController {
     @PostMapping("/{id}/rejection")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id,
-            @RequestBody RejectItemDto rejectItemDto, @AuthenticationPrincipal UserDetails userDetails)
+            @Valid @RequestBody TeacherCommentDto teacherCommentDto, @AuthenticationPrincipal UserDetails userDetails)
             throws Exception {
         Long currentTeacherId = ((AppUserDetails) userDetails).getId();
 
@@ -97,7 +100,7 @@ public class ExplanatoryNoteItemController {
                     "Cannot reject item with id: " + id + " by teacher with id: " + currentTeacherId);
         }
 
-        explanatoryNoteItemService.rejectItem(id, rejectItemDto.getTeacherComment());
+        explanatoryNoteItemService.rejectItem(id, currentTeacherId, teacherCommentDto.getTeacherComment());
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
