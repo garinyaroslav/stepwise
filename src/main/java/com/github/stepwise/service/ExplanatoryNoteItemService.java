@@ -47,7 +47,7 @@ public class ExplanatoryNoteItemService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found with id: " + projectId));
 
-        if (project.getStudent().getId() != userId)
+        if (!project.getStudent().getId().equals(userId))
             throw new IllegalArgumentException(
                     "User with id " + userId + " is not the owner of project with id: " + projectId);
 

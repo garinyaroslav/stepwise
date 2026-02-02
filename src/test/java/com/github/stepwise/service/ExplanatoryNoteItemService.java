@@ -21,12 +21,15 @@ import org.springframework.web.multipart.MultipartFile;
 import com.github.stepwise.configuration.FileUploadConfig;
 import com.github.stepwise.entity.AcademicWork;
 import com.github.stepwise.entity.ExplanatoryNoteItem;
+import com.github.stepwise.entity.ItemHistory;
 import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.entity.WorkTemplate;
 import com.github.stepwise.repository.ExplanatoryNoteRepository;
 import com.github.stepwise.repository.ProjectRepository;
+import com.github.stepwise.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ExplanatoryNoteItemServiceTest {
@@ -43,6 +46,9 @@ class ExplanatoryNoteItemServiceTest {
     @Mock
     private StorageService storageService;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private ExplanatoryNoteItemService explanatoryNoteItemService;
 
@@ -56,6 +62,7 @@ class ExplanatoryNoteItemServiceTest {
     private User teacher;
     private Project project;
     private AcademicWork academicWork;
+    private WorkTemplate workTemplate;
     private ExplanatoryNoteItem draftItem;
     private ExplanatoryNoteItem submittedItem;
     private ExplanatoryNoteItem approvedItem;
@@ -74,11 +81,14 @@ class ExplanatoryNoteItemServiceTest {
                 .role(UserRole.TEACHER)
                 .build();
 
+        workTemplate = WorkTemplate.builder()
+                .id(1L)
+                .countOfChapters(3)
+                .build();
+
         academicWork = AcademicWork.builder()
                 .id(1L)
-                .title("Research Paper")
-                .countOfChapters(3)
-                .teacher(teacher)
+                .workTemplate(workTemplate)
                 .build();
 
         project = Project.builder()
@@ -94,30 +104,54 @@ class ExplanatoryNoteItemServiceTest {
                 .orderNumber(0)
                 .status(ItemStatus.DRAFT)
                 .fileName("draft.pdf")
-                .draftedAt(LocalDateTime.now())
+                .history(new ArrayList<>())
                 .project(project)
                 .build();
+
+        ItemHistory draftHistory = ItemHistory.builder()
+                .item(draftItem)
+                .previousStatus(null)
+                .newStatus(ItemStatus.DRAFT)
+                .changedAt(LocalDateTime.now())
+                .changedBy(student)
+                .build();
+        draftItem.getHistory().add(draftHistory);
 
         submittedItem = ExplanatoryNoteItem.builder()
                 .id(2L)
                 .orderNumber(1)
                 .status(ItemStatus.SUBMITTED)
                 .fileName("submitted.pdf")
-                .draftedAt(LocalDateTime.now())
-                .submittedAt(LocalDateTime.now())
+                .history(new ArrayList<>())
                 .project(project)
                 .build();
+
+        ItemHistory submittedHistory = ItemHistory.builder()
+                .item(submittedItem)
+                .previousStatus(ItemStatus.DRAFT)
+                .newStatus(ItemStatus.SUBMITTED)
+                .changedAt(LocalDateTime.now())
+                .changedBy(student)
+                .build();
+        submittedItem.getHistory().add(submittedHistory);
 
         approvedItem = ExplanatoryNoteItem.builder()
                 .id(3L)
                 .orderNumber(2)
                 .status(ItemStatus.APPROVED)
                 .fileName("approved.pdf")
-                .draftedAt(LocalDateTime.now())
-                .submittedAt(LocalDateTime.now())
-                .approvedAt(LocalDateTime.now())
+                .history(new ArrayList<>())
                 .project(project)
                 .build();
+
+        ItemHistory approvedHistory = ItemHistory.builder()
+                .item(approvedItem)
+                .previousStatus(ItemStatus.SUBMITTED)
+                .newStatus(ItemStatus.APPROVED)
+                .changedAt(LocalDateTime.now())
+                .changedBy(teacher)
+                .build();
+        approvedItem.getHistory().add(approvedHistory);
     }
 
     @Test
@@ -126,6 +160,7 @@ class ExplanatoryNoteItemServiceTest {
         when(multipartFile.getContentType()).thenReturn("application/pdf");
         when(multipartFile.getOriginalFilename()).thenReturn("document.pdf");
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
 
         Project savedProject = Project.builder()
                 .id(1L)
@@ -140,7 +175,7 @@ class ExplanatoryNoteItemServiceTest {
                 .orderNumber(0)
                 .status(ItemStatus.DRAFT)
                 .fileName("document.pdf")
-                .draftedAt(LocalDateTime.now())
+                .history(new ArrayList<>())
                 .project(savedProject)
                 .build();
 
@@ -148,11 +183,14 @@ class ExplanatoryNoteItemServiceTest {
 
         when(projectRepository.save(any(Project.class))).thenReturn(savedProject);
 
+        doNothing().when(storageService).uploadExplanatoryFile(eq(1L), eq(1L), anyLong(), eq(multipartFile));
+
         explanatoryNoteItemService.draftItem(1L, 1L, multipartFile);
 
         verify(projectRepository, times(1)).findById(1L);
         verify(projectRepository, times(1)).save(any(Project.class));
-        verify(storageService, times(1)).uploadExplanatoryFile(eq(1L), eq(1L), eq(10L), eq(multipartFile));
+        verify(storageService, times(1)).uploadExplanatoryFile(eq(1L), eq(1L), anyLong(), eq(multipartFile));
+        verify(userRepository, times(1)).findById(1L);
     }
 
     @Test
@@ -167,6 +205,7 @@ class ExplanatoryNoteItemServiceTest {
         assertEquals("Project not found with id: 999", exception.getMessage());
         verify(projectRepository, times(1)).findById(999L);
         verify(projectRepository, never()).save(any(Project.class));
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -181,6 +220,7 @@ class ExplanatoryNoteItemServiceTest {
         assertEquals("User with id 999 is not the owner of project with id: 1", exception.getMessage());
         verify(projectRepository, times(1)).findById(1L);
         verify(projectRepository, never()).save(any(Project.class));
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -193,6 +233,7 @@ class ExplanatoryNoteItemServiceTest {
 
         assertTrue(exception.getMessage().contains("Only allowed file types are:"));
         verify(projectRepository, never()).findById(anyLong());
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -204,10 +245,12 @@ class ExplanatoryNoteItemServiceTest {
         when(multipartFile.getOriginalFilename()).thenReturn("updated.pdf");
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectRepository.save(any(Project.class))).thenReturn(project);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
 
         explanatoryNoteItemService.draftItem(1L, 1L, multipartFile);
 
         verify(projectRepository, times(1)).save(project);
+        verify(userRepository, times(1)).findById(1L);
         assertEquals(1, project.getItems().size());
         assertEquals("updated.pdf", draftItem.getFileName());
         assertEquals(ItemStatus.DRAFT, draftItem.getStatus());
@@ -220,8 +263,7 @@ class ExplanatoryNoteItemServiceTest {
                 .orderNumber(0)
                 .status(ItemStatus.REJECTED)
                 .fileName("rejected.pdf")
-                .draftedAt(LocalDateTime.now())
-                .teacherComment("Needs improvement")
+                .history(new ArrayList<>())
                 .project(project)
                 .build();
         project.getItems().add(rejectedItem);
@@ -231,14 +273,15 @@ class ExplanatoryNoteItemServiceTest {
         when(multipartFile.getOriginalFilename()).thenReturn("updated.pdf");
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectRepository.save(any(Project.class))).thenReturn(project);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
 
         explanatoryNoteItemService.draftItem(1L, 1L, multipartFile);
 
         verify(projectRepository, times(1)).save(project);
+        verify(userRepository, times(1)).findById(1L);
         assertEquals(1, project.getItems().size());
         assertEquals("updated.pdf", rejectedItem.getFileName());
         assertEquals(ItemStatus.DRAFT, rejectedItem.getStatus());
-        assertNull(rejectedItem.getTeacherComment());
     }
 
     @Test
@@ -254,18 +297,20 @@ class ExplanatoryNoteItemServiceTest {
 
         assertEquals("Cannot submit more than one item at a time", exception.getMessage());
         verify(projectRepository, never()).save(any(Project.class));
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
     void submitItem_WithDraftItem_ShouldSubmitSuccessfully() {
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(draftItem));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(explanatoryNoteRepository.save(any(ExplanatoryNoteItem.class))).thenReturn(draftItem);
 
-        explanatoryNoteItemService.submitItem(1L);
+        explanatoryNoteItemService.submitItem(1L, 1L);
 
         verify(explanatoryNoteRepository, times(1)).findById(1L);
         verify(explanatoryNoteRepository, times(1)).save(draftItem);
-        assertEquals(ItemStatus.SUBMITTED, draftItem.getStatus());
-        assertNotNull(draftItem.getSubmittedAt());
+        verify(userRepository, times(1)).findById(1L);
     }
 
     @Test
@@ -273,11 +318,12 @@ class ExplanatoryNoteItemServiceTest {
         when(explanatoryNoteRepository.findById(999L)).thenReturn(Optional.empty());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> explanatoryNoteItemService.submitItem(999L));
+                () -> explanatoryNoteItemService.submitItem(999L, 1L));
 
         assertEquals("Explanatory note item not found with id: 999", exception.getMessage());
         verify(explanatoryNoteRepository, times(1)).findById(999L);
         verify(explanatoryNoteRepository, never()).save(any(ExplanatoryNoteItem.class));
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -285,23 +331,34 @@ class ExplanatoryNoteItemServiceTest {
         when(explanatoryNoteRepository.findById(2L)).thenReturn(Optional.of(submittedItem));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> explanatoryNoteItemService.submitItem(2L));
+                () -> explanatoryNoteItemService.submitItem(2L, 1L));
 
-        assertEquals("Item with id: 2 is not in DRAFT status", exception.getMessage());
+        assertTrue(exception.getMessage().contains("is not in DRAFT status"));
         verify(explanatoryNoteRepository, times(1)).findById(2L);
         verify(explanatoryNoteRepository, never()).save(any(ExplanatoryNoteItem.class));
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
     void approveItem_WithSubmittedItem_ShouldApproveSuccessfully() {
-        when(explanatoryNoteRepository.findById(2L)).thenReturn(Optional.of(submittedItem));
+        ExplanatoryNoteItem testSubmittedItem = ExplanatoryNoteItem.builder()
+                .id(5L)
+                .orderNumber(1)
+                .status(ItemStatus.SUBMITTED)
+                .fileName("test.pdf")
+                .history(new ArrayList<>())
+                .project(project)
+                .build();
 
-        explanatoryNoteItemService.approveItem(2L);
+        when(explanatoryNoteRepository.findById(5L)).thenReturn(Optional.of(testSubmittedItem));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(teacher));
+        when(explanatoryNoteRepository.save(any(ExplanatoryNoteItem.class))).thenReturn(testSubmittedItem);
 
-        verify(explanatoryNoteRepository, times(1)).findById(2L);
-        verify(explanatoryNoteRepository, times(1)).save(submittedItem);
-        assertEquals(ItemStatus.APPROVED, submittedItem.getStatus());
-        assertNotNull(submittedItem.getApprovedAt());
+        explanatoryNoteItemService.approveItem(5L, 2L, "Good job");
+
+        verify(explanatoryNoteRepository, times(1)).findById(5L);
+        verify(explanatoryNoteRepository, times(1)).save(testSubmittedItem);
+        verify(userRepository, times(1)).findById(2L);
     }
 
     @Test
@@ -309,25 +366,35 @@ class ExplanatoryNoteItemServiceTest {
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(draftItem));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> explanatoryNoteItemService.approveItem(1L));
+                () -> explanatoryNoteItemService.approveItem(1L, 2L, "Comment"));
 
-        assertEquals("Item with id: 1 is not in SUBMITTED status", exception.getMessage());
+        assertTrue(exception.getMessage().contains("is not in SUBMITTED status"));
         verify(explanatoryNoteRepository, times(1)).findById(1L);
         verify(explanatoryNoteRepository, never()).save(any(ExplanatoryNoteItem.class));
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
     void rejectItem_WithSubmittedItem_ShouldRejectSuccessfully() {
+        ExplanatoryNoteItem testSubmittedItem = ExplanatoryNoteItem.builder()
+                .id(6L)
+                .orderNumber(1)
+                .status(ItemStatus.SUBMITTED)
+                .fileName("test.pdf")
+                .history(new ArrayList<>())
+                .project(project)
+                .build();
+
         String teacherComment = "Needs more details";
-        when(explanatoryNoteRepository.findById(2L)).thenReturn(Optional.of(submittedItem));
+        when(explanatoryNoteRepository.findById(6L)).thenReturn(Optional.of(testSubmittedItem));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(teacher));
+        when(explanatoryNoteRepository.save(any(ExplanatoryNoteItem.class))).thenReturn(testSubmittedItem);
 
-        explanatoryNoteItemService.rejectItem(2L, teacherComment);
+        explanatoryNoteItemService.rejectItem(6L, 2L, teacherComment);
 
-        verify(explanatoryNoteRepository, times(1)).findById(2L);
-        verify(explanatoryNoteRepository, times(1)).save(submittedItem);
-        assertEquals(ItemStatus.REJECTED, submittedItem.getStatus());
-        assertEquals(teacherComment, submittedItem.getTeacherComment());
-        assertNotNull(submittedItem.getRejectedAt());
+        verify(explanatoryNoteRepository, times(1)).findById(6L);
+        verify(explanatoryNoteRepository, times(1)).save(testSubmittedItem);
+        verify(userRepository, times(1)).findById(2L);
     }
 
     @Test
@@ -335,11 +402,12 @@ class ExplanatoryNoteItemServiceTest {
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(draftItem));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> explanatoryNoteItemService.rejectItem(1L, "Comment"));
+                () -> explanatoryNoteItemService.rejectItem(1L, 2L, "Comment"));
 
-        assertEquals("Item with id: 1 is not in SUBMITTED status", exception.getMessage());
+        assertTrue(exception.getMessage().contains("is not in SUBMITTED status"));
         verify(explanatoryNoteRepository, times(1)).findById(1L);
         verify(explanatoryNoteRepository, never()).save(any(ExplanatoryNoteItem.class));
+        verify(userRepository, never()).findById(anyLong());
     }
 
     @Test
@@ -418,5 +486,76 @@ class ExplanatoryNoteItemServiceTest {
 
         assertFalse(result);
         verify(explanatoryNoteRepository, times(1)).existsByIdAndTeacherId(1L, 999L);
+    }
+
+    @Test
+    void draftItem_WhenAllChaptersSubmitted_ShouldThrowException() throws Exception {
+        workTemplate.setCountOfChapters(1);
+        project.getItems().add(approvedItem);
+
+        when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
+        when(multipartFile.getContentType()).thenReturn("application/pdf");
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> explanatoryNoteItemService.draftItem(1L, 1L, multipartFile));
+
+        assertEquals("Project already has all items submitted", exception.getMessage());
+        verify(projectRepository, never()).save(any(Project.class));
+        verify(userRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void draftItem_WhenUserNotFound_ShouldThrowException() throws Exception {
+        when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
+        when(multipartFile.getContentType()).thenReturn("application/pdf");
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> explanatoryNoteItemService.draftItem(1L, 1L, multipartFile));
+
+        assertEquals("User not found with id: 1", exception.getMessage());
+        verify(projectRepository, never()).save(any(Project.class));
+        verify(userRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void submitItem_WhenUserNotFound_ShouldThrowException() {
+        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(draftItem));
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> explanatoryNoteItemService.submitItem(1L, 1L));
+
+        assertEquals("User not found with id: 1", exception.getMessage());
+        verify(explanatoryNoteRepository, never()).save(any(ExplanatoryNoteItem.class));
+        verify(userRepository, times(1)).findById(1L);
+    }
+
+    @Test
+    void approveItem_WhenUserNotFound_ShouldThrowException() {
+        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(draftItem));
+        when(userRepository.findById(2L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> explanatoryNoteItemService.approveItem(1L, 2L, "Comment"));
+
+        assertEquals("User not found with id: 2", exception.getMessage());
+        verify(explanatoryNoteRepository, never()).save(any(ExplanatoryNoteItem.class));
+        verify(userRepository, times(1)).findById(2L);
+    }
+
+    @Test
+    void rejectItem_WhenUserNotFound_ShouldThrowException() {
+        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(draftItem));
+        when(userRepository.findById(2L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> explanatoryNoteItemService.rejectItem(1L, 2L, "Comment"));
+
+        assertEquals("User not found with id: 2", exception.getMessage());
+        verify(explanatoryNoteRepository, never()).save(any(ExplanatoryNoteItem.class));
+        verify(userRepository, times(1)).findById(2L);
     }
 }

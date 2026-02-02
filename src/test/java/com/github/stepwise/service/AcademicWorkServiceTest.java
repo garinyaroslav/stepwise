@@ -4,9 +4,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,15 +18,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.github.stepwise.entity.AcademicWork;
-import com.github.stepwise.entity.AcademicWorkChapter;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.entity.WorkTemplate;
+import com.github.stepwise.entity.WorkTemplateChapter;
 import com.github.stepwise.repository.AcademicWorkRepository;
 import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.StudyGroupRepository;
 import com.github.stepwise.repository.UserRepository;
+import com.github.stepwise.repository.WorkTemplateRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AcademicWorkServiceTest {
@@ -41,6 +45,9 @@ class AcademicWorkServiceTest {
     @Mock
     private ProjectRepository projectRepository;
 
+    @Mock
+    private WorkTemplateRepository workTemplateRepository;
+
     @InjectMocks
     private AcademicWorkService academicWorkService;
 
@@ -49,7 +56,8 @@ class AcademicWorkServiceTest {
     private User student1;
     private User student2;
     private AcademicWork academicWork;
-    private List<AcademicWorkChapter> chapters;
+    private WorkTemplate workTemplate;
+    private List<WorkTemplateChapter> chapters;
 
     @BeforeEach
     void setUp() {
@@ -77,69 +85,89 @@ class AcademicWorkServiceTest {
                 .students(new ArrayList<>(List.of(student1, student2)))
                 .build();
 
+        workTemplate = WorkTemplate.builder()
+                .id(1L)
+                .templateTitle("Research Template")
+                .workTitle("Research Paper")
+                .workDescription("A research paper on mathematics")
+                .teacher(teacher)
+                .build();
+
         academicWork = AcademicWork.builder()
                 .id(1L)
-                .title("Research Paper")
-                .description("A research paper on mathematics")
+                .group(studyGroup)
+                .workTemplate(workTemplate)
                 .build();
 
-        AcademicWorkChapter chapter1 = AcademicWorkChapter.builder()
+        WorkTemplateChapter chapter1 = WorkTemplateChapter.builder()
+                .id(1L)
                 .title("Introduction")
                 .description("Introduction content")
+                .indexOfChapter(1)
+                .deadline(LocalDateTime.now().plusDays(7))
+                .workTemplate(workTemplate)
                 .build();
 
-        AcademicWorkChapter chapter2 = AcademicWorkChapter.builder()
+        WorkTemplateChapter chapter2 = WorkTemplateChapter.builder()
+                .id(2L)
                 .title("Methodology")
                 .description("Methodology content")
+                .indexOfChapter(2)
+                .deadline(LocalDateTime.now().plusDays(14))
+                .workTemplate(workTemplate)
                 .build();
 
         chapters = List.of(chapter1, chapter2);
+        workTemplate.setWorkTemplateChapters(chapters);
     }
 
     @Test
-    void create_WhenGroupAndTeacherExist_ShouldCreateAcademicWorkAndProjects() {
+    void create_WhenGroupAndTemplateExist_ShouldCreateAcademicWorkAndProjects() {
         when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
-        when(userRepository.findById(3L)).thenReturn(Optional.of(teacher));
+        when(workTemplateRepository.findById(1L)).thenReturn(Optional.of(workTemplate));
         when(academicWorkRepository.save(any(AcademicWork.class))).thenReturn(academicWork);
         when(projectRepository.saveAll(anyList())).thenReturn(List.of());
 
-        academicWorkService.create(academicWork, chapters, 1L, 3L);
+        academicWorkService.create(1L, 1L);
 
         verify(studyGroupRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).findById(3L);
-        verify(academicWorkRepository, times(1)).save(academicWork);
+        verify(workTemplateRepository, times(1)).findById(1L);
+        verify(academicWorkRepository, times(1)).save(any(AcademicWork.class));
         verify(projectRepository, times(1)).saveAll(anyList());
-
-        assertEquals(studyGroup, academicWork.getGroup());
-        assertEquals(teacher, academicWork.getTeacher());
-        assertEquals(chapters, academicWork.getAcademicWorkChapters());
     }
 
     @Test
     void create_WhenGroupNotFound_ShouldThrowException() {
         when(studyGroupRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> academicWorkService.create(academicWork, chapters, 999L, 3L));
+        CompletionException completionException = assertThrows(CompletionException.class,
+                () -> academicWorkService.create(1L, 999L));
 
-        assertEquals("Group not found with id: 999", exception.getMessage());
+        Throwable actualException = completionException.getCause();
+        assertNotNull(actualException);
+        assertTrue(actualException instanceof IllegalArgumentException);
+        assertEquals("Group not found with id: 999", actualException.getMessage());
+
         verify(studyGroupRepository, times(1)).findById(999L);
-        verify(userRepository, never()).findById(anyLong());
         verify(academicWorkRepository, never()).save(any(AcademicWork.class));
         verify(projectRepository, never()).saveAll(anyList());
     }
 
     @Test
-    void create_WhenTeacherNotFound_ShouldThrowException() {
+    void create_WhenWorkTemplateNotFound_ShouldThrowException() {
         when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(workTemplateRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> academicWorkService.create(academicWork, chapters, 1L, 999L));
+        CompletionException completionException = assertThrows(CompletionException.class,
+                () -> academicWorkService.create(999L, 1L));
 
-        assertEquals("Teacher not found with id: 999", exception.getMessage());
+        Throwable actualException = completionException.getCause();
+        assertNotNull(actualException);
+        assertTrue(actualException instanceof IllegalArgumentException);
+        assertEquals("Work template not found with id: 999", actualException.getMessage());
+
         verify(studyGroupRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).findById(999L);
+        verify(workTemplateRepository, times(1)).findById(999L);
         verify(academicWorkRepository, never()).save(any(AcademicWork.class));
         verify(projectRepository, never()).saveAll(anyList());
     }
@@ -147,7 +175,7 @@ class AcademicWorkServiceTest {
     @Test
     void create_ShouldCreateProjectsForAllStudentsInGroup() {
         when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
-        when(userRepository.findById(3L)).thenReturn(Optional.of(teacher));
+        when(workTemplateRepository.findById(1L)).thenReturn(Optional.of(workTemplate));
         when(academicWorkRepository.save(any(AcademicWork.class))).thenReturn(academicWork);
 
         List<Project> savedProjects = new ArrayList<>();
@@ -157,19 +185,17 @@ class AcademicWorkServiceTest {
             return projects;
         });
 
-        academicWorkService.create(academicWork, chapters, 1L, 3L);
+        academicWorkService.create(1L, 1L);
 
         assertEquals(2, savedProjects.size());
 
         Project project1 = savedProjects.get(0);
-        assertEquals("Мой проект по теме: " + academicWork.getTitle(), project1.getTitle());
-        assertEquals("Описание проекта", project1.getDescription());
-        assertEquals(academicWork, project1.getAcademicWork());
+        assertEquals("Мой проект по теме: " + workTemplate.getWorkTitle(), project1.getTitle());
+        assertEquals("Моё описание проекта", project1.getDescription());
 
         Project project2 = savedProjects.get(1);
-        assertEquals("Мой проект по теме: " + academicWork.getTitle(), project2.getTitle());
-        assertEquals("Описание проекта", project2.getDescription());
-        assertEquals(academicWork, project2.getAcademicWork());
+        assertEquals("Мой проект по теме: " + workTemplate.getWorkTitle(), project2.getTitle());
+        assertEquals("Моё описание проекта", project2.getDescription());
     }
 
     @Test
@@ -267,31 +293,51 @@ class AcademicWorkServiceTest {
                 .build();
 
         when(studyGroupRepository.findById(3L)).thenReturn(Optional.of(emptyGroup));
-        when(userRepository.findById(3L)).thenReturn(Optional.of(teacher));
+        when(workTemplateRepository.findById(1L)).thenReturn(Optional.of(workTemplate));
         when(academicWorkRepository.save(any(AcademicWork.class))).thenReturn(academicWork);
 
-        academicWorkService.create(academicWork, chapters, 3L, 3L);
+        academicWorkService.create(1L, 3L);
 
         verify(studyGroupRepository, times(1)).findById(3L);
-        verify(userRepository, times(1)).findById(3L);
-        verify(academicWorkRepository, times(1)).save(academicWork);
+        verify(workTemplateRepository, times(1)).findById(1L);
+        verify(academicWorkRepository, times(1)).save(any(AcademicWork.class));
         verify(projectRepository, times(1)).saveAll(List.of());
     }
 
     @Test
-    void create_WithNullChapters_ShouldHandleGracefully() {
-        when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
-        when(userRepository.findById(3L)).thenReturn(Optional.of(teacher));
-        when(academicWorkRepository.save(any(AcademicWork.class))).thenReturn(academicWork);
-        when(projectRepository.saveAll(anyList())).thenReturn(List.of());
+    void getByTeacherAndGroupId_WithGroupId_ShouldReturnWorks() {
+        List<AcademicWork> expectedWorks = List.of(academicWork);
+        when(academicWorkRepository.findByGroupIdAndTeacherId(1L, 3L)).thenReturn(expectedWorks);
 
-        academicWorkService.create(academicWork, null, 1L, 3L);
+        List<AcademicWork> result = academicWorkService.getByTeacherAndGroupId(3L, 1L);
 
-        verify(studyGroupRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).findById(3L);
-        verify(academicWorkRepository, times(1)).save(academicWork);
-        verify(projectRepository, times(1)).saveAll(anyList());
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(academicWork, result.get(0));
+        verify(academicWorkRepository, times(1)).findByGroupIdAndTeacherId(1L, 3L);
+    }
 
-        assertNull(academicWork.getAcademicWorkChapters());
+    @Test
+    void getByTeacherAndGroupId_WithoutGroupId_ShouldReturnAllTeacherWorks() {
+        List<AcademicWork> expectedWorks = List.of(academicWork);
+        when(academicWorkRepository.findByTeacherId(3L)).thenReturn(expectedWorks);
+
+        List<AcademicWork> result = academicWorkService.getByTeacherAndGroupId(3L, null);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(academicWork, result.get(0));
+        verify(academicWorkRepository, times(1)).findByTeacherId(3L);
+    }
+
+    @Test
+    void getByTeacherAndGroupId_WhenNoWorksFound_ShouldReturnEmptyList() {
+        when(academicWorkRepository.findByGroupIdAndTeacherId(1L, 3L)).thenReturn(List.of());
+
+        List<AcademicWork> result = academicWorkService.getByTeacherAndGroupId(3L, 1L);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(academicWorkRepository, times(1)).findByGroupIdAndTeacherId(1L, 3L);
     }
 }

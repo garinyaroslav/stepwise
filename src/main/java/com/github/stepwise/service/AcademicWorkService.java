@@ -60,7 +60,7 @@ public class AcademicWorkService {
         List<Project> projects = new LinkedList<>();
 
         for (User student : group.getStudents()) {
-            projects.add(new Project("Мой проект по теме: " + template.getWorkTitle(), "Описание проекта",
+            projects.add(new Project("Мой проект по теме: " + template.getWorkTitle(), "Моё описание проекта",
                     student, academicWork));
         }
 

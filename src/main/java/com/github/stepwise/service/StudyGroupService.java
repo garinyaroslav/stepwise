@@ -1,10 +1,20 @@
 package com.github.stepwise.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.github.stepwise.entity.AcademicWork;
+import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.StudyGroup;
+import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.repository.AcademicWorkRepository;
+import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.StudyGroupRepository;
 import com.github.stepwise.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,62 +25,107 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class StudyGroupService {
 
-  private final StudyGroupRepository studyGroupRepository;
-  private final UserRepository userRepository;
+    private final StudyGroupRepository studyGroupRepository;
+    private final UserRepository userRepository;
+    private final AcademicWorkRepository academicWorkRepository;
+    private final ProjectRepository projectRepository;
 
-  public List<StudyGroup> findAll(String search) {
-    log.info("Find all groups with search: {}", search);
+    public List<StudyGroup> findAll(String search) {
+        log.info("Find all groups with search: {}", search);
 
-    if (search == null || search.isBlank()) {
-      return studyGroupRepository.findAll();
+        if (search == null || search.isBlank()) {
+            return studyGroupRepository.findAll();
+        }
+
+        return studyGroupRepository.findByNameContainingIgnoreCase(search);
     }
 
-    return studyGroupRepository.findByNameContainingIgnoreCase(search);
-  }
+    public StudyGroup findById(Long groupId) {
+        log.info("Find group by id: {}", groupId);
 
-  public StudyGroup findById(Long groupId) {
-    log.info("Find group by id: {}", groupId);
-
-    return studyGroupRepository.findById(groupId)
-        .orElseThrow(() -> new IllegalArgumentException("Group with id " + groupId + " not found"));
-  }
-
-  @Transactional
-  public void create(String name, List<Long> studentsIds) {
-    log.info("Create group with name: {}", name);
-
-    var usersList = userRepository.findByIdInAndRole(studentsIds, UserRole.STUDENT);
-
-    if (usersList.isEmpty()) {
-      log.warn("No users found with provided IDs: {}", studentsIds);
-      studyGroupRepository.save(new StudyGroup(name, List.of()));
-      return;
+        return studyGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group with id " + groupId + " not found"));
     }
 
-    studyGroupRepository.save(new StudyGroup(name, usersList));
+    @Transactional
+    public void create(String name, List<Long> studentsIds) {
+        log.info("Create group with name: {}", name);
 
-    log.info("Group created with name: {}", name);
-  }
+        var usersList = userRepository.findByIdInAndRole(studentsIds, UserRole.STUDENT);
 
-  @Transactional
-  public StudyGroup update(Long id, List<Long> newStudentsIds) {
-    log.info("Update group with id: {}", id);
+        if (usersList.isEmpty()) {
+            log.warn("No users found with provided IDs: {}", studentsIds);
+            studyGroupRepository.save(new StudyGroup(name, List.of()));
+            return;
+        }
 
-    StudyGroup studyGroup = studyGroupRepository.findById(id)
-        .orElseThrow(() -> new IllegalArgumentException("Group with id " + id + " not found"));
+        studyGroupRepository.save(new StudyGroup(name, usersList));
 
-    var newUsersList = userRepository.findByIdInAndRole(newStudentsIds, UserRole.STUDENT);
-
-    if (newUsersList.isEmpty()) {
-      log.warn("No users found with provided IDs: {}", newStudentsIds);
-      throw new IllegalArgumentException("No valid students found for the provided IDs");
+        log.info("Group created with name: {}", name);
     }
 
-    studyGroup.setStudents(newUsersList);
-    StudyGroup updatedStudyGroup = studyGroupRepository.save(studyGroup);
+    @Transactional
+    public StudyGroup update(Long id, List<Long> newStudentsIds) {
+        log.info("Update group with id: {}", id);
 
-    log.info("Group updated with id: {}", id);
+        StudyGroup studyGroup = studyGroupRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Group with id " + id + " not found"));
 
-    return updatedStudyGroup;
-  }
+        List<User> newUsersList = userRepository.findByIdInAndRole(newStudentsIds, UserRole.STUDENT);
+
+        if (newUsersList.isEmpty()) {
+            log.warn("No users found with provided IDs: {}", newStudentsIds);
+            throw new IllegalArgumentException("No valid students found for the provided IDs");
+        }
+
+        List<User> oldUsersList = studyGroup.getStudents();
+
+        Set<Long> oldUserIds = oldUsersList.stream().map(User::getId).collect(Collectors.toSet());
+        Set<Long> newUserIds = newUsersList.stream().map(User::getId).collect(Collectors.toSet());
+
+        List<User> removedUsers = oldUsersList.stream().filter(user -> !newUserIds.contains(user.getId()))
+                .collect(Collectors.toList());
+        List<User> addedUsers = newUsersList.stream().filter(user -> !oldUserIds.contains(user.getId()))
+                .collect(Collectors.toList());
+
+        List<AcademicWork> works = academicWorkRepository.findByGroupId(id);
+
+        if (!removedUsers.isEmpty() && !works.isEmpty()) {
+            List<Long> removedUserIds = removedUsers.stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList());
+
+            List<Project> projectsToRemove = projectRepository.findByAcademicWorkInAndStudentIdIn(works,
+                    removedUserIds);
+
+            if (!projectsToRemove.isEmpty()) {
+                log.info("Removing {} projects for removed students", projectsToRemove.size());
+                projectRepository.deleteAll(projectsToRemove);
+            }
+        }
+
+        if (!addedUsers.isEmpty() && !works.isEmpty()) {
+            List<Project> projectsToAdd = new ArrayList<>();
+
+            for (User student : addedUsers) {
+                for (AcademicWork work : works) {
+                    Project project = new Project("Мой проект по теме: " + work.getWorkTemplate().getWorkTitle(),
+                            "Моё описание проекта", student, work);
+                    projectsToAdd.add(project);
+                }
+            }
+
+            if (!projectsToAdd.isEmpty()) {
+                log.info("Adding {} projects for new students", projectsToAdd.size());
+                projectRepository.saveAll(projectsToAdd);
+            }
+        }
+
+        studyGroup.setStudents(newUsersList);
+        StudyGroup updatedStudyGroup = studyGroupRepository.save(studyGroup);
+
+        log.info("Group updated with id: {}", id);
+
+        return updatedStudyGroup;
+    }
 }
