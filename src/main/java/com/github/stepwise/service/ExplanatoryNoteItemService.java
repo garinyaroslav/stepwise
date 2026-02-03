@@ -2,7 +2,6 @@ package com.github.stepwise.service;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,17 +52,19 @@ public class ExplanatoryNoteItemService {
 
         List<ExplanatoryNoteItem> items = project.getItems();
 
-        if (items.size() >= (int) project.getAcademicWork().getWorkTemplate().getCountOfChapters()
-                && (items.getLast().getStatus() == ItemStatus.SUBMITTED
-                        || items.getLast().getStatus() == ItemStatus.APPROVED))
-            throw new IllegalArgumentException("Project already has all items submitted");
+        if (!items.isEmpty()) {
+            if (items.size() >= (int) project.getAcademicWork().getWorkTemplate().getCountOfChapters()
+                    && (items.getLast().getStatus() == ItemStatus.SUBMITTED
+                            || items.getLast().getStatus() == ItemStatus.APPROVED))
+                throw new IllegalArgumentException("Project already has all items submitted");
 
-        if (items.size() > 0 && (items.getLast().getStatus() == ItemStatus.SUBMITTED))
-            throw new IllegalArgumentException("Cannot submit more than one item at a time");
+            if (items.getLast().getStatus() == ItemStatus.SUBMITTED)
+                throw new IllegalArgumentException("Cannot submit more than one item at a time");
+        }
 
         ExplanatoryNoteItem newItem;
 
-        if (items.size() == 0 || items.getLast().getStatus() == ItemStatus.APPROVED) {
+        if (items.isEmpty() || items.getLast().getStatus() == ItemStatus.APPROVED) {
             newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, file.getOriginalFilename(), project);
 
             User changedBy = userRepository.findById(userId)
@@ -105,14 +106,10 @@ public class ExplanatoryNoteItemService {
 
         Project savedProject = projectRepository.save(project);
 
-        Long newExplanatoryNoteItemId = savedProject.getItems().stream()
-                .max(Comparator.comparingInt(ExplanatoryNoteItem::getOrderNumber))
-                .orElseThrow(() -> new RuntimeException("Failed to define last item ID")).getId();
-
         log.info("Explanatory note item created successfully for projectId: {}, itemId: {}",
                 savedProject.getId(), newItem.getId());
 
-        storageService.uploadExplanatoryFile(userId, projectId, newExplanatoryNoteItemId, file);
+        storageService.uploadExplanatoryFile(userId, projectId, newItem.getId(), file);
     }
 
     public void submitItem(Long itemId, Long studentId) {

@@ -56,6 +56,7 @@ public class ExplanatoryNoteItem {
         this.status = status;
         this.fileName = fileName;
         this.project = project;
+        this.history = new ArrayList<>();
     }
 
 }
