@@ -122,8 +122,8 @@ public class UserController {
     public ResponseEntity<UserResponseDto> updateProfile(
             @Valid @RequestBody ProfileDto profileDto,
             @AuthenticationPrincipal UserDetails userDetails) {
-
         log.info("Updating user profile: {}", profileDto);
+
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
 
         Long userIdForUpdate = getUserIdForUpdate(profileDto, appUserDetails);
@@ -134,11 +134,10 @@ public class UserController {
         return ResponseEntity.ok(UserResponseDto.fromUserWithFullInfo(updatedUser));
     }
 
-    @GetMapping("/profile/my")
+    @GetMapping("/profile")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<UserResponseDto> getMyProfile(
             @AuthenticationPrincipal UserDetails userDetails) {
-
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
         log.info("Fetching my profile, userId: {}", appUserDetails.getId());
 
