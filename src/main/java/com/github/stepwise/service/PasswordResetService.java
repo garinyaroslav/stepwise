@@ -78,7 +78,7 @@ public class PasswordResetService {
     @Transactional
     public void resetPassword(
             String token,
-            @NotBlank(message = "password must not be blank") @Size(min = 6, max = 100, message = "password must be between 6 and 100 characters") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=]).{8,}$", message = "Password is not valid: password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character") String newPassword) {
+            @NotBlank(message = "password must not be blank") @Size(min = 8, max = 100, message = "password must be between 8 and 100 characters") @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=]).{8,}$", message = "Password is not valid: password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character") String newPassword) {
         PasswordResetToken resetToken = tokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
 
