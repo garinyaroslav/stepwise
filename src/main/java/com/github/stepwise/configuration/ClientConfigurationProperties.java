@@ -1,6 +1,5 @@
 package com.github.stepwise.configuration;
 
-import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -8,9 +7,11 @@ import lombok.Data;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "file-upload")
-public class FileUploadConfig {
+@ConfigurationProperties(prefix = "client")
+public class ClientConfigurationProperties {
 
-    private List<String> allowedMimeTypes;
+    private String url;
+
+    private String refreshTokenUrl;
 
 }

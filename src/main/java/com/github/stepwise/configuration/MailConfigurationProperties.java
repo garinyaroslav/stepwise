@@ -1,6 +1,5 @@
 package com.github.stepwise.configuration;
 
-import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -8,9 +7,15 @@ import lombok.Data;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "file-upload")
-public class FileUploadConfig {
+@ConfigurationProperties(prefix = "spring.mail")
+public class MailConfigurationProperties {
 
-    private List<String> allowedMimeTypes;
+    private String host;
+
+    private int port;
+
+    private String username;
+
+    private String password;
 
 }

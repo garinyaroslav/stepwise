@@ -1,8 +1,17 @@
 package com.github.stepwise.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +25,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.github.stepwise.configuration.MailConfigurationProperties;
 import com.github.stepwise.entity.AcademicWork;
 import com.github.stepwise.entity.ExplanatoryNoteItem;
 import com.github.stepwise.entity.ItemStatus;
@@ -41,12 +52,14 @@ class ProjectServiceTest {
     @Mock
     private JavaMailSender mailSender;
 
+    @Mock
+    private MailConfigurationProperties mailConfig;
+
     @InjectMocks
     private ProjectService projectService;
 
     private Project project;
     private User student;
-    private User teacher;
     private StudyGroup studyGroup;
     private AcademicWork academicWork;
     private WorkTemplate workTemplate;
@@ -58,12 +71,6 @@ class ProjectServiceTest {
                 .username("student1")
                 .email("student1@example.com")
                 .role(UserRole.STUDENT)
-                .build();
-
-        teacher = User.builder()
-                .id(2L)
-                .username("teacher1")
-                .role(UserRole.TEACHER)
                 .build();
 
         studyGroup = StudyGroup.builder()
@@ -107,9 +114,6 @@ class ProjectServiceTest {
                 .isApprovedForDefense(false)
                 .items(new ArrayList<>())
                 .build();
-
-        org.springframework.test.util.ReflectionTestUtils.setField(
-                projectService, "fromEmail", "test@example.com");
     }
 
     @Test

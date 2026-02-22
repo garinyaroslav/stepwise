@@ -1,13 +1,17 @@
 package com.github.stepwise.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.github.stepwise.configuration.ClientConfigurationProperties;
+import com.github.stepwise.configuration.MailConfigurationProperties;
 import com.github.stepwise.entity.PasswordResetToken;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.PasswordResetTokenRepository;
@@ -18,32 +22,23 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import java.util.Date;
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PasswordResetService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
+    private final PasswordResetTokenRepository tokenRepository;
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    private final ClientConfigurationProperties clientConfig;
 
-    @Value("${client.refresh-token-url}")
-    private String clientRedirectUrl;
+    private final MailConfigurationProperties mailConfig;
 
     public void requestPasswordReset(String email) {
         User user = userRepository.findByEmail(email)
@@ -64,12 +59,12 @@ public class PasswordResetService {
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
-        message.setFrom(fromEmail);
+        message.setFrom(mailConfig.getUsername());
         message.setSubject("Запрос на сброс пароля");
 
         message.setText(String.format(
                 "Ваш код для сброса парля: %s\nЕсли вы пользуетесь web-приложением перейдите по ссылке: %s",
-                token, clientRedirectUrl + token));
+                token, clientConfig.getRefreshTokenUrl() + token));
         mailSender.send(message);
 
         log.info("Password reset link sent to {}", email);

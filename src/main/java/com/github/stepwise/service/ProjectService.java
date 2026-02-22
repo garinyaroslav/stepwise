@@ -3,10 +3,11 @@ package com.github.stepwise.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
+import com.github.stepwise.configuration.MailConfigurationProperties;
 import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.User;
@@ -27,8 +28,7 @@ public class ProjectService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    private final MailConfigurationProperties mailConfig;
 
     public Project updateProject(Project newProject) {
         log.info("Updating project with id: {}, {}", newProject.getId(), newProject);
@@ -41,9 +41,7 @@ public class ProjectService {
         project.setTitle(newProject.getTitle());
         project.setDescription(newProject.getDescription());
 
-        Project updatedProject = projectRepository.save(project);
-
-        return updatedProject;
+        return projectRepository.save(project);
     }
 
     public Project getByProjectId(Long projectId) {
@@ -95,7 +93,7 @@ public class ProjectService {
 
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(user.getEmail());
-            message.setFrom(fromEmail);
+            message.setFrom(mailConfig.getUsername());
             message.setSubject("Ваша работа одобрена для защиты");
 
             message.setText(String.format(
