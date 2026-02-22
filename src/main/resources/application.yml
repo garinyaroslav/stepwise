@@ -42,4 +42,4 @@ minio:
 
 client:
   url: ${CLIENT_URL:http://localhost:5173}
-  refresh-token-url: ${REFRESH_TOKEN_URL:http://app.com/reset?token=}
+  refresh-token-url: ${client.url}${REFRESH_TOKEN_URL:/reset?token=}
