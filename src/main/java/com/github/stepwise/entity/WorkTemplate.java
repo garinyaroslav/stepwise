@@ -1,5 +1,6 @@
 package com.github.stepwise.entity;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.persistence.CascadeType;
@@ -46,6 +47,9 @@ public class WorkTemplate {
 
     @Column(nullable = false)
     private Integer countOfChapters;
+
+    @Column(updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

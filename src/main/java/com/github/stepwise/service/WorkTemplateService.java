@@ -1,6 +1,7 @@
 package com.github.stepwise.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -34,6 +35,12 @@ public class WorkTemplateService {
             return workTemplateRepository.findAll(pageable);
 
         return workTemplateRepository.findAllWithSearch(pageable, search);
+    }
+
+    public Optional<WorkTemplate> findById(Long id) {
+        log.info("Fetching work template by id: {}", id);
+
+        return workTemplateRepository.findById(id);
     }
 
     public WorkTemplate create(CreateWorkTemplateDto dto) {

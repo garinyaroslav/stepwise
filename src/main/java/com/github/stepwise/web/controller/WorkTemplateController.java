@@ -73,6 +73,17 @@ public class WorkTemplateController {
         return ResponseEntity.ok(new PageResponse<>(content, templates.getTotalPages()));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER')")
+    public TemplateResDto getTemplate(@Positive @PathVariable Long id) {
+        log.info("Fetching template by id: {}", id);
+
+        WorkTemplate wt = workTemplateService.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Work template not found with id: " + id));
+
+        return TemplateResDto.fromEntity(wt);
+    }
+
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_TEACHER')")
     public ResponseEntity<TemplateResDto> updateWorkTemplate(@Positive @PathVariable Long id,

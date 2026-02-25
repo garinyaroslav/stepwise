@@ -1,6 +1,8 @@
 package com.github.stepwise.web.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.stepwise.entity.ProjectType;
 import com.github.stepwise.entity.WorkTemplate;
@@ -29,6 +31,8 @@ public class TemplateResDto {
 
     private ProjectType type;
 
+    private LocalDateTime createdAt;
+
     private List<WorkChapterDto> chapters;
 
     public static TemplateResDto fromEntity(WorkTemplate work) {
@@ -43,6 +47,7 @@ public class TemplateResDto {
                 .workTitle(work.getWorkTitle())
                 .workDescription(work.getWorkDescription())
                 .type(work.getType())
+                .createdAt(work.getCreatedAt())
                 .chapters(chapters)
                 .build();
     }
