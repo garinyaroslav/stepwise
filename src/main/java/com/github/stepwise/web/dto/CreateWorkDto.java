@@ -1,5 +1,9 @@
 package com.github.stepwise.web.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
@@ -18,5 +22,21 @@ public class CreateWorkDto {
     @NotNull(message = "workTemplateId is required")
     @Positive(message = "workTemplateId must be positive")
     private Long workTemplateId;
+
+    @NotNull(message = "deadlines are required")
+    @Valid
+    private List<ChapterDeadlineDto> deadlines;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChapterDeadlineDto {
+        @NotNull
+        @Positive
+        private Integer chapterIndex;
+
+        @NotNull
+        private LocalDateTime deadline;
+    }
 
 }

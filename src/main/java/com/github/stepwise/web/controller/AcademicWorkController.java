@@ -37,7 +37,7 @@ public class AcademicWorkController {
             @AuthenticationPrincipal UserDetails userDetails) {
         log.info("Creating new academic work: {}", workDto);
 
-        academicWorkService.create(workDto.getWorkTemplateId(), workDto.getGroupId());
+        academicWorkService.create(workDto.getWorkTemplateId(), workDto.getGroupId(), workDto.getDeadlines());
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

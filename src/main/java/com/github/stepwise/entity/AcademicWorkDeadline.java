@@ -20,33 +20,21 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "work_template_chapter")
-public class WorkTemplateChapter {
+@Table(name = "academic_work_deadline")
+public class AcademicWorkDeadline {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String title;
+    @ManyToOne
+    @JoinColumn(name = "work_template_id", nullable = false)
+    private AcademicWork academicWork;
 
     @Column(nullable = false)
     private Integer indexOfChapter;
 
-    @Column
-    private String description;
-
-    @ManyToOne
-    @JoinColumn(name = "work_template_id", nullable = false)
-    private WorkTemplate workTemplate;
-
-    // public WorkTemplateChapter(String title, Integer indexOfChapter, String
-    // description,
-    // WorkTemplate workTemplate, LocalDateTime deadline) {
-    // this.title = title;
-    // this.indexOfChapter = indexOfChapter;
-    // this.description = description;
-    // this.workTemplate = workTemplate;
-    // }
+    @Column(nullable = false)
+    private LocalDateTime deadline;
 
 }

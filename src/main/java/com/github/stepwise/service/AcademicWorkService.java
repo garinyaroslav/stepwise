@@ -8,17 +8,19 @@ import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.StudyGroupRepository;
 import com.github.stepwise.repository.UserRepository;
 import com.github.stepwise.repository.WorkTemplateRepository;
+import com.github.stepwise.web.dto.CreateWorkDto;
 
 import jakarta.transaction.Transactional;
 import com.github.stepwise.entity.AcademicWork;
+import com.github.stepwise.entity.AcademicWorkDeadline;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.StudyGroup;
-import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.WorkTemplate;
+import com.github.stepwise.entity.WorkTemplateChapter;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,34 +38,45 @@ public class AcademicWorkService {
     private final WorkTemplateRepository workTemplateRepository;
 
     @Transactional
-    public void create(Long workTemplateId, Long groupId) {
-        log.info("Creating work by template: {}, groupId: {}", workTemplateId, groupId);
+    public void create(Long workTemplateId, Long groupId, List<CreateWorkDto.ChapterDeadlineDto> deadlineDtos) {
 
-        CompletableFuture<StudyGroup> groupFuture = CompletableFuture
-                .supplyAsync(() -> studyGroupRepository.findById(groupId)
-                        .orElseThrow(() -> new IllegalArgumentException("Group not found with id: " + groupId)));
+        StudyGroup group = studyGroupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
+        WorkTemplate template = workTemplateRepository.findById(workTemplateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + workTemplateId));
 
-        CompletableFuture<WorkTemplate> templateFuture = CompletableFuture.supplyAsync(() -> workTemplateRepository
-                .findById(workTemplateId)
-                .orElseThrow(() -> new IllegalArgumentException("Work template not found with id: " + workTemplateId)));
-
-        StudyGroup group = groupFuture.join();
-        WorkTemplate template = templateFuture.join();
+        Set<Integer> templateIndexes = template.getWorkTemplateChapters().stream()
+                .map(WorkTemplateChapter::getIndexOfChapter)
+                .collect(Collectors.toSet());
+        Set<Integer> providedIndexes = deadlineDtos.stream()
+                .map(CreateWorkDto.ChapterDeadlineDto::getChapterIndex)
+                .collect(Collectors.toSet());
+        if (!providedIndexes.containsAll(templateIndexes)) {
+            throw new IllegalArgumentException("Deadlines must be provided for all chapters");
+        }
 
         AcademicWork academicWork = AcademicWork.builder()
                 .group(group)
                 .workTemplate(template)
                 .build();
 
+        List<AcademicWorkDeadline> deadlines = deadlineDtos.stream()
+                .map(dto -> AcademicWorkDeadline.builder()
+                        .academicWork(academicWork)
+                        .indexOfChapter(dto.getChapterIndex())
+                        .deadline(dto.getDeadline())
+                        .build())
+                .collect(Collectors.toList());
+        academicWork.setDeadlines(deadlines);
+
         academicWorkRepository.save(academicWork);
 
-        List<Project> projects = new LinkedList<>();
-
-        for (User student : group.getStudents()) {
-            projects.add(new Project("Мой проект по теме: " + template.getWorkTitle(), "Моё описание проекта",
-                    student, academicWork));
-        }
-
+        List<Project> projects = group.getStudents().stream()
+                .map(student -> new Project(
+                        "Мой проект по теме: " + template.getWorkTitle(),
+                        "Моё описание проекта",
+                        student, academicWork))
+                .collect(Collectors.toList());
         projectRepository.saveAll(projects);
     }
 

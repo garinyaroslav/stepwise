@@ -40,4 +40,8 @@ public class AcademicWork {
     @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projects = new ArrayList<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AcademicWorkDeadline> deadlines = new ArrayList<>();
+
 }

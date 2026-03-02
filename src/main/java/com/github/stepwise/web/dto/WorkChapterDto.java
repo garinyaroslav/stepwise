@@ -1,11 +1,8 @@
 package com.github.stepwise.web.dto;
 
-import java.time.LocalDateTime;
-
 import com.github.stepwise.entity.WorkTemplate;
 import com.github.stepwise.entity.WorkTemplateChapter;
 
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -32,16 +29,11 @@ public class WorkChapterDto {
     @Size(min = 3, max = 300, message = "description must be between 3 and 300 characters if provided")
     private String description;
 
-    @NotNull(message = "deadline is required")
-    @Future(message = "deadline must be a future date")
-    private LocalDateTime deadline;
-
     public static WorkChapterDto fromEntity(WorkTemplateChapter chapter) {
         return WorkChapterDto.builder()
                 .index(chapter.getIndexOfChapter())
                 .title(chapter.getTitle())
                 .description(chapter.getDescription())
-                .deadline(chapter.getDeadline())
                 .build();
     }
 
@@ -50,7 +42,6 @@ public class WorkChapterDto {
                 .title(this.title)
                 .indexOfChapter(this.index)
                 .description(this.description)
-                .deadline(this.deadline)
                 .workTemplate(parent)
                 .build();
     }
