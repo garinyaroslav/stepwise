@@ -55,7 +55,7 @@ public class WorkTemplate {
     private Integer countOfChapters;
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, columnDefinition = "timestamp(6) default now()")
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
