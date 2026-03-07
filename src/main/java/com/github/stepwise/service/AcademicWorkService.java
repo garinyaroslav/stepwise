@@ -39,6 +39,8 @@ public class AcademicWorkService {
 
     @Transactional
     public void create(Long workTemplateId, Long groupId, List<CreateWorkDto.ChapterDeadlineDto> deadlineDtos) {
+        log.info("Creating new academic work, templateId: {}, groupId: {}, deadlines: {}", workTemplateId, groupId,
+                deadlineDtos);
 
         StudyGroup group = studyGroupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
@@ -51,6 +53,7 @@ public class AcademicWorkService {
         Set<Integer> providedIndexes = deadlineDtos.stream()
                 .map(CreateWorkDto.ChapterDeadlineDto::getChapterIndex)
                 .collect(Collectors.toSet());
+
         if (!providedIndexes.containsAll(templateIndexes)) {
             throw new IllegalArgumentException("Deadlines must be provided for all chapters");
         }

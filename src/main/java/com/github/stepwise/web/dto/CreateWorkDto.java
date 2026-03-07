@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
@@ -32,7 +33,7 @@ public class CreateWorkDto {
     @AllArgsConstructor
     public static class ChapterDeadlineDto {
         @NotNull
-        @Positive
+        @Min(0)
         private Integer chapterIndex;
 
         @NotNull

@@ -35,8 +35,6 @@ public class AcademicWorkController {
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<Void> createWork(@Valid @RequestBody CreateWorkDto workDto,
             @AuthenticationPrincipal UserDetails userDetails) {
-        log.info("Creating new academic work: {}", workDto);
-
         academicWorkService.create(workDto.getWorkTemplateId(), workDto.getGroupId(), workDto.getDeadlines());
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
