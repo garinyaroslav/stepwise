@@ -40,9 +40,6 @@ public class ExplanatoryNoteItem {
     @Column(nullable = false)
     private ItemStatus status = ItemStatus.DRAFT;
 
-    @Column(nullable = false)
-    private String fileName;
-
     @Builder.Default
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemHistory> history = new ArrayList<>();
@@ -51,12 +48,19 @@ public class ExplanatoryNoteItem {
     @JoinColumn(name = "student_project_id", nullable = false)
     private Project project;
 
-    public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, String fileName, Project project) {
+    public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, Project project) {
         this.orderNumber = orderNumber;
         this.status = status;
-        this.fileName = fileName;
         this.project = project;
         this.history = new ArrayList<>();
+    }
+
+    public String getLatestFileName() {
+        return history.stream()
+                .filter(h -> h.getFileName() != null)
+                .reduce((first, second) -> second)
+                .map(ItemHistory::getFileName)
+                .orElse(null);
     }
 
 }

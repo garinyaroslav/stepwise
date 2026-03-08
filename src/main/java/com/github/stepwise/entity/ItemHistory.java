@@ -41,4 +41,7 @@ public class ItemHistory {
     @JoinColumn(name = "changed_by_user_id")
     private User changedBy;
 
+    @Column
+    private String fileName;
+
 }

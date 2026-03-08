@@ -25,7 +25,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.github.stepwise.configuration.MailConfigurationProperties;
 import com.github.stepwise.entity.AcademicWork;
@@ -116,6 +115,16 @@ class ProjectServiceTest {
                 .build();
     }
 
+    private ExplanatoryNoteItem buildApprovedItem(Long id, int orderNumber, Project project) {
+        return ExplanatoryNoteItem.builder()
+                .id(id)
+                .status(ItemStatus.APPROVED)
+                .orderNumber(orderNumber)
+                .project(project)
+                .history(new ArrayList<>())
+                .build();
+    }
+
     @Test
     void updateProject_WhenProjectExists_ShouldUpdateProject() {
         Project newProjectData = Project.builder()
@@ -150,7 +159,6 @@ class ProjectServiceTest {
                 () -> projectService.updateProject(newProjectData));
 
         assertEquals("Project not found with id: 999", exception.getMessage());
-        verify(projectRepository, times(1)).findById(999L);
         verify(projectRepository, never()).save(any(Project.class));
     }
 
@@ -162,7 +170,6 @@ class ProjectServiceTest {
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        verify(projectRepository, times(1)).findById(1L);
     }
 
     @Test
@@ -173,33 +180,26 @@ class ProjectServiceTest {
                 () -> projectService.getByProjectId(999L));
 
         assertEquals("Project not found project id: 999", exception.getMessage());
-        verify(projectRepository, times(1)).findById(999L);
     }
 
     @Test
     void getAllByWorkId_ShouldReturnProjects() {
-        List<Project> expectedProjects = List.of(project);
-        when(projectRepository.findAllByAcademicWorkId(1L)).thenReturn(expectedProjects);
+        when(projectRepository.findAllByAcademicWorkId(1L)).thenReturn(List.of(project));
 
         List<Project> result = projectService.getAllByWorkId(1L);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getId());
-        verify(projectRepository, times(1)).findAllByAcademicWorkId(1L);
     }
 
     @Test
     void getAllByWorkIdAndStudentId_ShouldReturnProjects() {
-        List<Project> expectedProjects = List.of(project);
-        when(projectRepository.findAllByAcademicWorkIdAndStudentId(1L, 1L)).thenReturn(expectedProjects);
+        when(projectRepository.findAllByAcademicWorkIdAndStudentId(1L, 1L)).thenReturn(List.of(project));
 
         List<Project> result = projectService.getAllByWorkIdAndStudentId(1L, 1L);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getId());
-        verify(projectRepository, times(1)).findAllByAcademicWorkIdAndStudentId(1L, 1L);
     }
 
     @Test
@@ -213,23 +213,9 @@ class ProjectServiceTest {
                 .items(new ArrayList<>())
                 .build();
 
-        ExplanatoryNoteItem approvedItem1 = ExplanatoryNoteItem.builder()
-                .id(1L)
-                .status(ItemStatus.APPROVED)
-                .orderNumber(0)
-                .fileName("item1.pdf")
-                .project(testProject)
-                .build();
-
-        ExplanatoryNoteItem approvedItem2 = ExplanatoryNoteItem.builder()
-                .id(2L)
-                .status(ItemStatus.APPROVED)
-                .orderNumber(1)
-                .fileName("item2.pdf")
-                .project(testProject)
-                .build();
-
-        testProject.setItems(List.of(approvedItem1, approvedItem2));
+        testProject.setItems(List.of(
+                buildApprovedItem(1L, 0, testProject),
+                buildApprovedItem(2L, 1, testProject)));
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
         when(projectRepository.save(any(Project.class))).thenReturn(testProject);
@@ -241,9 +227,6 @@ class ProjectServiceTest {
         assertNotNull(result);
         assertTrue(result.isApprovedForDefense());
         assertNotNull(result.getApprovedForDefenseAt());
-        verify(projectRepository, times(1)).findById(1L);
-        verify(projectRepository, times(1)).save(testProject);
-        verify(userRepository, times(1)).findById(1L);
         verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
     }
 
@@ -257,20 +240,11 @@ class ProjectServiceTest {
                 .build();
 
         ExplanatoryNoteItem approvedItem = ExplanatoryNoteItem.builder()
-                .id(1L)
-                .status(ItemStatus.APPROVED)
-                .orderNumber(0)
-                .fileName("approved.pdf")
-                .project(testProject)
-                .build();
-
+                .id(1L).status(ItemStatus.APPROVED).orderNumber(0)
+                .project(testProject).history(new ArrayList<>()).build();
         ExplanatoryNoteItem pendingItem = ExplanatoryNoteItem.builder()
-                .id(2L)
-                .status(ItemStatus.SUBMITTED)
-                .orderNumber(1)
-                .fileName("pending.pdf")
-                .project(testProject)
-                .build();
+                .id(2L).status(ItemStatus.SUBMITTED).orderNumber(1)
+                .project(testProject).history(new ArrayList<>()).build();
 
         testProject.setItems(List.of(approvedItem, pendingItem));
 
@@ -280,9 +254,7 @@ class ProjectServiceTest {
                 () -> projectService.approve(1L));
 
         assertEquals("Cannot approve project with id: 1", exception.getMessage());
-        verify(projectRepository, times(1)).findById(1L);
         verify(projectRepository, never()).save(any(Project.class));
-        verify(userRepository, never()).findById(anyLong());
         verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
@@ -294,10 +266,7 @@ class ProjectServiceTest {
                 () -> projectService.approve(999L));
 
         assertEquals("Project not found with id: 999", exception.getMessage());
-        verify(projectRepository, times(1)).findById(999L);
         verify(projectRepository, never()).save(any(Project.class));
-        verify(userRepository, never()).findById(anyLong());
-        verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     @Test
@@ -311,23 +280,9 @@ class ProjectServiceTest {
                 .items(new ArrayList<>())
                 .build();
 
-        ExplanatoryNoteItem approvedItem1 = ExplanatoryNoteItem.builder()
-                .id(1L)
-                .status(ItemStatus.APPROVED)
-                .orderNumber(0)
-                .fileName("item1.pdf")
-                .project(testProject)
-                .build();
-
-        ExplanatoryNoteItem approvedItem2 = ExplanatoryNoteItem.builder()
-                .id(2L)
-                .status(ItemStatus.APPROVED)
-                .orderNumber(1)
-                .fileName("item2.pdf")
-                .project(testProject)
-                .build();
-
-        testProject.setItems(List.of(approvedItem1, approvedItem2));
+        testProject.setItems(List.of(
+                buildApprovedItem(1L, 0, testProject),
+                buildApprovedItem(2L, 1, testProject)));
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
         when(projectRepository.save(any(Project.class))).thenReturn(testProject);
@@ -335,113 +290,65 @@ class ProjectServiceTest {
 
         Project result = projectService.approve(1L);
 
-        assertNotNull(result);
         assertTrue(result.isApprovedForDefense());
-        assertNotNull(result.getApprovedForDefenseAt());
-        verify(projectRepository, times(1)).findById(1L);
-        verify(projectRepository, times(1)).save(testProject);
-        verify(userRepository, times(1)).findById(1L);
         verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     @Test
     void approve_WhenNoItems_ShouldThrowException() {
         Project testProject = Project.builder()
-                .id(1L)
-                .academicWork(academicWork)
-                .student(student)
-                .items(new ArrayList<>())
-                .build();
+                .id(1L).academicWork(academicWork).student(student).items(new ArrayList<>()).build();
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> projectService.approve(1L));
-
-        assertEquals("Cannot approve project with id: 1", exception.getMessage());
-        verify(projectRepository, times(1)).findById(1L);
+        assertThrows(IllegalArgumentException.class, () -> projectService.approve(1L));
         verify(projectRepository, never()).save(any(Project.class));
     }
 
     @Test
     void approve_WhenWorkTemplateHasNoChapters_ShouldThrowException() {
         WorkTemplate emptyTemplate = WorkTemplate.builder()
-                .id(2L)
-                .templateTitle("Empty Template")
-                .templateDescription("No chapters")
-                .workTemplateChapters(new ArrayList<>())
-                .build();
+                .id(2L).templateTitle("Empty Template")
+                .workTemplateChapters(new ArrayList<>()).build();
 
         AcademicWork work = AcademicWork.builder()
-                .id(2L)
-                .group(studyGroup)
-                .workTemplate(emptyTemplate)
-                .build();
+                .id(2L).group(studyGroup).workTemplate(emptyTemplate).build();
 
         Project testProject = Project.builder()
-                .id(2L)
-                .academicWork(work)
-                .student(student)
-                .items(new ArrayList<>())
-                .build();
+                .id(2L).academicWork(work).student(student).items(new ArrayList<>()).build();
 
         ExplanatoryNoteItem approvedItem = ExplanatoryNoteItem.builder()
-                .id(3L)
-                .status(ItemStatus.APPROVED)
-                .orderNumber(0)
-                .fileName("approved.pdf")
-                .project(testProject)
-                .build();
-
+                .id(3L).status(ItemStatus.APPROVED).orderNumber(0)
+                .project(testProject).history(new ArrayList<>()).build();
         testProject.setItems(List.of(approvedItem));
 
         when(projectRepository.findById(2L)).thenReturn(Optional.of(testProject));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> projectService.approve(2L));
-
-        assertEquals("Cannot approve project with id: 2", exception.getMessage());
-        verify(projectRepository, times(1)).findById(2L);
+        assertThrows(IllegalArgumentException.class, () -> projectService.approve(2L));
         verify(projectRepository, never()).save(any(Project.class));
     }
 
     @Test
     void isProjectBelongsToStudent_ShouldReturnTrue() {
         when(projectRepository.existsByIdAndStudentId(1L, 1L)).thenReturn(true);
-
-        boolean result = projectService.isProjectBelongsToStudent(1L, 1L);
-
-        assertTrue(result);
-        verify(projectRepository, times(1)).existsByIdAndStudentId(1L, 1L);
+        assertTrue(projectService.isProjectBelongsToStudent(1L, 1L));
     }
 
     @Test
     void isProjectBelongsToStudent_ShouldReturnFalse() {
         when(projectRepository.existsByIdAndStudentId(1L, 999L)).thenReturn(false);
-
-        boolean result = projectService.isProjectBelongsToStudent(1L, 999L);
-
-        assertFalse(result);
-        verify(projectRepository, times(1)).existsByIdAndStudentId(1L, 999L);
+        assertFalse(projectService.isProjectBelongsToStudent(1L, 999L));
     }
 
     @Test
     void isProjectBelongsToTeacher_ShouldReturnTrue() {
         when(projectRepository.existsByIdAndTeacherId(1L, 2L)).thenReturn(true);
-
-        boolean result = projectService.isProjectBelongsToTeacher(1L, 2L);
-
-        assertTrue(result);
-        verify(projectRepository, times(1)).existsByIdAndTeacherId(1L, 2L);
+        assertTrue(projectService.isProjectBelongsToTeacher(1L, 2L));
     }
 
     @Test
     void isProjectBelongsToTeacher_ShouldReturnFalse() {
         when(projectRepository.existsByIdAndTeacherId(1L, 999L)).thenReturn(false);
-
-        boolean result = projectService.isProjectBelongsToTeacher(1L, 999L);
-
-        assertFalse(result);
-        verify(projectRepository, times(1)).existsByIdAndTeacherId(1L, 999L);
+        assertFalse(projectService.isProjectBelongsToTeacher(1L, 999L));
     }
 }

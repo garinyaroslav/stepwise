@@ -108,10 +108,12 @@ public class ExplanatoryNoteItemController {
     @GetMapping("/file")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<InputStreamResource> downloadItemFile(
-            @AuthenticationPrincipal UserDetails userDetails, @RequestParam(required = false) Long userId,
-            @RequestParam Long projectId, @RequestParam Long itemId) throws Exception {
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) Long userId,
+            @RequestParam Long projectId,
+            @RequestParam Long itemId,
+            @RequestParam(required = false) Long historyId) throws Exception {
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
-
         Long targetUserId = userId == null ? appUserDetails.getId() : userId;
 
         log.info("Downloading item file for userId: {}, projectId: {}, itemId: {}", targetUserId, projectId,
@@ -123,7 +125,7 @@ public class ExplanatoryNoteItemController {
             throw new IllegalArgumentException("Unauthorized access to item file");
         }
 
-        InputStream inputStream = explanatoryNoteItemService.getItemFile(targetUserId, projectId, itemId);
+        InputStream inputStream = explanatoryNoteItemService.getItemFile(targetUserId, projectId, itemId, historyId);
 
         return new ResponseEntity<>(new InputStreamResource(inputStream), HttpStatus.OK);
     }

@@ -2,10 +2,12 @@ package com.github.stepwise.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -92,7 +94,6 @@ class ExplanatoryNoteItemServiceTest {
                 .id(1L)
                 .orderNumber(0)
                 .status(ItemStatus.DRAFT)
-                .fileName("test.pdf")
                 .project(project)
                 .history(new ArrayList<>())
                 .build();
@@ -121,24 +122,29 @@ class ExplanatoryNoteItemServiceTest {
                 .items(new ArrayList<>())
                 .build();
 
+        ItemHistory savedHistory = ItemHistory.builder()
+                .id(100L)
+                .newStatus(ItemStatus.DRAFT)
+                .changedAt(LocalDateTime.now())
+                .fileName("document.pdf")
+                .build();
+
         ExplanatoryNoteItem savedItem = ExplanatoryNoteItem.builder()
                 .id(10L)
                 .orderNumber(0)
                 .status(ItemStatus.DRAFT)
-                .fileName("document.pdf")
                 .project(savedProject)
-                .history(new ArrayList<>())
+                .history(new ArrayList<>(List.of(savedHistory)))
                 .build();
+        savedHistory.setItem(savedItem);
         savedProject.getItems().add(savedItem);
 
         when(projectRepository.save(any(Project.class))).thenReturn(savedProject);
 
-        doNothing().when(storageService).uploadExplanatoryFile(anyLong(), anyLong(), any(), any(MultipartFile.class));
-
         service.draftItem(1L, 1L, file);
 
-        verify(projectRepository).save(any(Project.class));
-        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), any(), eq(file));
+        verify(projectRepository, times(2)).save(any(Project.class));
+        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), anyLong(), isNull(), eq(file));
     }
 
     @Test
@@ -146,9 +152,7 @@ class ExplanatoryNoteItemServiceTest {
         when(file.getContentType()).thenReturn("text/plain");
         when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            service.draftItem(1L, 1L, file);
-        });
+        assertThrows(IllegalArgumentException.class, () -> service.draftItem(1L, 1L, file));
     }
 
     @Test
@@ -157,9 +161,7 @@ class ExplanatoryNoteItemServiceTest {
         when(file.getContentType()).thenReturn("application/pdf");
         when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            service.draftItem(999L, 1L, file);
-        });
+        assertThrows(IllegalArgumentException.class, () -> service.draftItem(999L, 1L, file));
     }
 
     @Test
@@ -180,9 +182,7 @@ class ExplanatoryNoteItemServiceTest {
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
         when(userRepository.findById(1L)).thenReturn(Optional.of(student));
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            service.submitItem(1L, 1L);
-        });
+        assertThrows(IllegalArgumentException.class, () -> service.submitItem(1L, 1L));
     }
 
     @Test
@@ -205,9 +205,8 @@ class ExplanatoryNoteItemServiceTest {
         item.setStatus(ItemStatus.SUBMITTED);
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
         when(userRepository.findById(2L)).thenReturn(Optional.of(teacher));
-        String comment = "Нужны исправления";
 
-        service.rejectItem(1L, 2L, comment);
+        service.rejectItem(1L, 2L, "Нужны исправления");
 
         assertEquals(ItemStatus.REJECTED, item.getStatus());
         verify(explanatoryNoteRepository).save(item);
@@ -219,66 +218,111 @@ class ExplanatoryNoteItemServiceTest {
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
         when(userRepository.findById(2L)).thenReturn(Optional.of(teacher));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            service.rejectItem(1L, 2L, "Комментарий");
-        });
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.rejectItem(1L, 2L, "Комментарий"));
 
         assertTrue(exception.getMessage().contains("is not in SUBMITTED status"));
     }
 
     @Test
-    void getItemFile_ShouldReturnInputStream() throws Exception {
+    void getItemFile_ShouldReturnLatestFileFromHistory() throws Exception {
+        ItemHistory historyWithFile = ItemHistory.builder()
+                .id(10L)
+                .newStatus(ItemStatus.DRAFT)
+                .changedAt(LocalDateTime.now())
+                .fileName("test.pdf")
+                .item(item)
+                .build();
+        item.getHistory().add(historyWithFile);
+
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
         InputStream mockStream = new ByteArrayInputStream("test content".getBytes());
-        when(storageService.downloadExplanatoryFile(1L, 1L, 1L, "test.pdf"))
+        when(storageService.downloadExplanatoryFile(1L, 1L, 1L, 10L, "test.pdf"))
                 .thenReturn(mockStream);
 
-        InputStream result = service.getItemFile(1L, 1L, 1L);
+        InputStream result = service.getItemFile(1L, 1L, 1L, null);
 
         assertNotNull(result);
         assertEquals(mockStream, result);
     }
 
     @Test
-    void getItemFile_ShouldThrowException_WhenFileNotFound() throws Exception {
-        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
-        when(storageService.downloadExplanatoryFile(1L, 1L, 1L, "test.pdf"))
-                .thenReturn(null);
+    void getItemFile_ShouldReturnSpecificHistoryFile() throws Exception {
+        ItemHistory history1 = ItemHistory.builder()
+                .id(10L)
+                .newStatus(ItemStatus.DRAFT)
+                .changedAt(LocalDateTime.now().minusDays(1))
+                .fileName("v1.pdf")
+                .item(item)
+                .build();
+        ItemHistory history2 = ItemHistory.builder()
+                .id(11L)
+                .newStatus(ItemStatus.DRAFT)
+                .changedAt(LocalDateTime.now())
+                .fileName("v2.pdf")
+                .item(item)
+                .build();
+        item.getHistory().addAll(List.of(history1, history2));
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            service.getItemFile(1L, 1L, 1L);
-        });
+        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+        InputStream mockStream = new ByteArrayInputStream("v1 content".getBytes());
+        when(storageService.downloadExplanatoryFile(1L, 1L, 1L, 10L, "v1.pdf"))
+                .thenReturn(mockStream);
+
+        InputStream result = service.getItemFile(1L, 1L, 1L, 10L);
+
+        assertNotNull(result);
+        assertEquals(mockStream, result);
+    }
+
+    @Test
+    void getItemFile_ShouldThrowException_WhenNoFileInHistory() throws Exception {
+        ItemHistory historyNoFile = ItemHistory.builder()
+                .id(20L)
+                .newStatus(ItemStatus.SUBMITTED)
+                .changedAt(LocalDateTime.now())
+                .item(item)
+                .build();
+        item.getHistory().add(historyNoFile);
+
+        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.getItemFile(1L, 1L, 1L, null));
     }
 
     @Test
     void isItemBelongsToStudent_ShouldReturnTrue_WhenItemBelongsToStudent() {
         when(explanatoryNoteRepository.existsByIdAndUserId(1L, 1L)).thenReturn(true);
 
-        boolean result = service.isItemBelongsToStudent(1L, 1L);
-
-        assertTrue(result);
+        assertTrue(service.isItemBelongsToStudent(1L, 1L));
     }
 
     @Test
     void isItemBelongsToStudent_ShouldReturnFalse_WhenItemDoesNotBelongToStudent() {
         when(explanatoryNoteRepository.existsByIdAndUserId(1L, 1L)).thenReturn(false);
 
-        boolean result = service.isItemBelongsToStudent(1L, 1L);
-
-        assertFalse(result);
+        assertFalse(service.isItemBelongsToStudent(1L, 1L));
     }
 
     @Test
     void isItemBelongsToTeacher_ShouldReturnTrue_WhenTeacherHasAccess() {
         when(explanatoryNoteRepository.existsByIdAndTeacherId(1L, 2L)).thenReturn(true);
 
-        boolean result = service.isItemBelongsToTeacher(1L, 2L);
-
-        assertTrue(result);
+        assertTrue(service.isItemBelongsToTeacher(1L, 2L));
     }
 
     @Test
     void draftItem_ShouldUpdateExistingDraft_WhenLastItemIsDraft() throws Exception {
+        ItemHistory existingHistory = ItemHistory.builder()
+                .id(5L)
+                .newStatus(ItemStatus.DRAFT)
+                .changedAt(LocalDateTime.now().minusHours(1))
+                .fileName("old.pdf")
+                .item(item)
+                .build();
+        item.getHistory().add(existingHistory);
+
         project.getItems().clear();
         project.getItems().add(item);
 
@@ -291,9 +335,9 @@ class ExplanatoryNoteItemServiceTest {
 
         service.draftItem(1L, 1L, file);
 
-        verify(storageService).deleteExplanatoryFile(1L, 1L, 1L, "test.pdf");
-        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), eq(1L), eq(file));
-        assertEquals("updated.pdf", item.getFileName());
+        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), anyLong(), isNull(), eq(file));
+        ItemHistory lastHistory = item.getHistory().getLast();
+        assertEquals("updated.pdf", lastHistory.getFileName());
     }
 
     @Test
@@ -305,7 +349,6 @@ class ExplanatoryNoteItemServiceTest {
                     .id((long) (i + 1))
                     .orderNumber(i)
                     .status(ItemStatus.APPROVED)
-                    .fileName("item" + i + ".pdf")
                     .project(project)
                     .history(new ArrayList<>())
                     .build();
@@ -316,8 +359,6 @@ class ExplanatoryNoteItemServiceTest {
         when(file.getContentType()).thenReturn("application/pdf");
         when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            service.draftItem(1L, 1L, file);
-        });
+        assertThrows(IllegalArgumentException.class, () -> service.draftItem(1L, 1L, file));
     }
 }

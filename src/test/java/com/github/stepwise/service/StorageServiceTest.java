@@ -85,12 +85,12 @@ class StorageServiceTest {
         when(multipartFile.getSize()).thenReturn(1024L);
         when(multipartFile.getContentType()).thenReturn("application/pdf");
 
-        storageService.uploadExplanatoryFile(1L, 2L, 3L, multipartFile);
+        storageService.uploadExplanatoryFile(1L, 2L, 3L, 4L, multipartFile);
 
         verify(minioClient).putObject(argThat(putObjectArgs -> {
             try {
                 return putObjectArgs.bucket().equals(worksBucketName) &&
-                        putObjectArgs.object().equals("1/2/3/document.pdf");
+                        putObjectArgs.object().equals("1/2/3/4/document.pdf");
             } catch (Exception e) {
                 return false;
             }
@@ -109,7 +109,7 @@ class StorageServiceTest {
         doThrow(new RuntimeException("Upload failed")).when(minioClient).putObject(any(PutObjectArgs.class));
 
         Exception exception = assertThrows(Exception.class,
-                () -> storageService.uploadExplanatoryFile(1L, 2L, 3L, multipartFile));
+                () -> storageService.uploadExplanatoryFile(1L, 2L, 3L, 4L, multipartFile));
 
         assertTrue(exception.getMessage().contains("Upload failed"));
     }
@@ -123,11 +123,11 @@ class StorageServiceTest {
         when(multipartFile.getSize()).thenReturn(1024L);
         when(multipartFile.getContentType()).thenReturn("application/pdf");
 
-        storageService.uploadExplanatoryFile(1L, 2L, 3L, multipartFile);
+        storageService.uploadExplanatoryFile(1L, 2L, 3L, 4L, multipartFile);
 
         verify(minioClient).putObject(argThat(putObjectArgs -> {
             try {
-                return putObjectArgs.object().equals("1/2/3/null");
+                return putObjectArgs.object().equals("1/2/3/4/null");
             } catch (Exception e) {
                 return false;
             }
@@ -143,7 +143,7 @@ class StorageServiceTest {
         doThrow(new RuntimeException("File not found")).when(minioClient).getObject(any());
 
         Exception exception = assertThrows(Exception.class,
-                () -> storageService.downloadExplanatoryFile(1L, 2L, 3L, filename));
+                () -> storageService.downloadExplanatoryFile(1L, 2L, 3L, 4L, filename));
 
         assertTrue(exception.getMessage().contains("File not found"));
     }
@@ -157,7 +157,7 @@ class StorageServiceTest {
         when(multipartFile.getSize()).thenReturn(512L);
         when(multipartFile.getContentType()).thenReturn("text/plain");
 
-        storageService.uploadExplanatoryFile(1L, 2L, 3L, multipartFile);
+        storageService.uploadExplanatoryFile(1L, 2L, 3L, 4L, multipartFile);
 
         verify(minioClient).putObject(argThat(putObjectArgs -> {
             try {
@@ -177,9 +177,8 @@ class StorageServiceTest {
         when(multipartFile.getSize()).thenReturn(2048L);
         when(multipartFile.getContentType()).thenReturn("application/pdf");
 
-        storageService.uploadExplanatoryFile(1L, 2L, 3L, multipartFile);
+        storageService.uploadExplanatoryFile(1L, 2L, 3L, 4L, multipartFile);
 
         verify(minioClient).putObject(any(PutObjectArgs.class));
     }
-
 }

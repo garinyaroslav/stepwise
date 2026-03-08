@@ -33,7 +33,6 @@ public class ExplanatoryNoteItemResponseDto {
                 .id(item.getId())
                 .orderNumber(item.getOrderNumber())
                 .status(item.getStatus())
-                .fileName(item.getFileName())
                 .history(item.getHistory().stream()
                         .map(HistoryItemDto::fromEntity)
                         .toList())

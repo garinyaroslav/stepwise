@@ -140,7 +140,7 @@ class PasswordResetServiceTest {
     void resetPassword_WithExpiredToken_ShouldThrowException() {
         String token = "expired-token";
         PasswordResetToken expiredToken = new PasswordResetToken(token, user,
-                new Date(System.currentTimeMillis() - 3600000)); // 1 hour ago
+                new Date(System.currentTimeMillis() - 3600000));
 
         when(tokenRepository.findByToken(token)).thenReturn(Optional.of(expiredToken));
 

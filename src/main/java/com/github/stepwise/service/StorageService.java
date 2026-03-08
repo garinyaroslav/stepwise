@@ -34,33 +34,34 @@ public class StorageService {
         }
     }
 
-    public void uploadExplanatoryFile(Long studentId, Long projectId, Long itemId, MultipartFile file)
+    public void uploadExplanatoryFile(Long studentId, Long projectId, Long itemId, Long historyId, MultipartFile file)
             throws Exception {
-        String worksBucketName = minioConfig.getBucketNames().get(0);
+        String objectName = String.format("%d/%d/%d/%d/%s", studentId, projectId, itemId, historyId,
+                file.getOriginalFilename());
 
-        String objectName = String.format("%d/%d/%d/%s", studentId, projectId, itemId, file.getOriginalFilename());
-
-        minioClient.putObject(PutObjectArgs.builder().bucket(worksBucketName).object(objectName)
-                .stream(file.getInputStream(), file.getSize(), -1).contentType(file.getContentType())
+        minioClient.putObject(PutObjectArgs.builder()
+                .bucket(minioConfig.getBucketNames().get(0))
+                .object(objectName)
+                .stream(file.getInputStream(), file.getSize(), -1)
+                .contentType(file.getContentType())
                 .build());
     }
 
-    public void deleteExplanatoryFile(Long studentId, Long projectId, Long itemId, String filename)
+    public void deleteExplanatoryFile(Long studentId, Long projectId, Long itemId, Long historyId, String filename)
             throws Exception {
-        String worksBucketName = minioConfig.getBucketNames().get(0);
+        String objectName = String.format("%d/%d/%d/%d/%s", studentId, projectId, itemId, historyId, filename);
 
-        String objectName = String.format("%d/%d/%d/%s", studentId, projectId, itemId, filename);
-
-        minioClient.removeObject(RemoveObjectArgs.builder().bucket(worksBucketName).object(objectName).build());
+        minioClient.removeObject(RemoveObjectArgs.builder()
+                .bucket(minioConfig.getBucketNames().get(0))
+                .object(objectName).build());
     }
 
-    public InputStream downloadExplanatoryFile(Long studentId, Long projectId, Long itemId,
+    public InputStream downloadExplanatoryFile(Long studentId, Long projectId, Long itemId, Long historyId,
             String filename) throws Exception {
-        String worksBucketName = minioConfig.getBucketNames().get(0);
+        String objectName = String.format("%d/%d/%d/%d/%s", studentId, projectId, itemId, historyId, filename);
 
-        String objectName = String.format("%d/%d/%d/%s", studentId, projectId, itemId, filename);
-
-        return minioClient
-                .getObject(GetObjectArgs.builder().bucket(worksBucketName).object(objectName).build());
+        return minioClient.getObject(GetObjectArgs.builder()
+                .bucket(minioConfig.getBucketNames().get(0))
+                .object(objectName).build());
     }
 }

@@ -40,13 +40,4 @@ public class WorkTemplateChapter {
     @JoinColumn(name = "work_template_id", nullable = false)
     private WorkTemplate workTemplate;
 
-    // public WorkTemplateChapter(String title, Integer indexOfChapter, String
-    // description,
-    // WorkTemplate workTemplate, LocalDateTime deadline) {
-    // this.title = title;
-    // this.indexOfChapter = indexOfChapter;
-    // this.description = description;
-    // this.workTemplate = workTemplate;
-    // }
-
 }

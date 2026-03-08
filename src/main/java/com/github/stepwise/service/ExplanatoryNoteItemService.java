@@ -62,54 +62,42 @@ public class ExplanatoryNoteItemService {
                 throw new IllegalArgumentException("Cannot submit more than one item at a time");
         }
 
-        ExplanatoryNoteItem newItem;
+        User changedBy = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        ExplanatoryNoteItem item;
 
         if (items.isEmpty() || items.getLast().getStatus() == ItemStatus.APPROVED) {
-            newItem = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, file.getOriginalFilename(), project);
-
-            User changedBy = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-
-            ItemHistory newItemHistory = ItemHistory.builder().item(newItem)
-                    .previousStatus(null)
-                    .newStatus(ItemStatus.DRAFT)
-                    .changedAt(LocalDateTime.now())
-                    .changedBy(changedBy)
-                    .build();
-
-            newItem.getHistory().add(newItemHistory);
-
-            items.add(newItem);
+            item = new ExplanatoryNoteItem(items.size(), ItemStatus.DRAFT, project);
+            items.add(item);
         } else if (items.getLast().getStatus() == ItemStatus.DRAFT
                 || items.getLast().getStatus() == ItemStatus.REJECTED) {
-            storageService.deleteExplanatoryFile(userId, projectId,
-                    items.getLast().getId(), items.getLast().getFileName());
-
-            newItem = items.getLast();
-
-            User changedBy = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-
-            ItemHistory newItemHistory = ItemHistory.builder().item(newItem)
-                    .previousStatus(items.getLast().getStatus())
-                    .newStatus(ItemStatus.DRAFT)
-                    .changedAt(LocalDateTime.now())
-                    .changedBy(changedBy)
-                    .build();
-
-            newItem.getHistory().add(newItemHistory);
-            newItem.setStatus(ItemStatus.DRAFT);
-            newItem.setFileName(file.getOriginalFilename());
-        } else
-            throw new IllegalArgumentException(
-                    "Cannot create draft item for project with id: " + projectId);
+            item = items.getLast();
+            item.setStatus(ItemStatus.DRAFT);
+        } else {
+            throw new IllegalArgumentException("Cannot draft item for project: " + projectId);
+        }
 
         Project savedProject = projectRepository.save(project);
+        item = savedProject.getItems().getLast();
 
-        log.info("Explanatory note item created successfully for projectId: {}, itemId: {}",
-                savedProject.getId(), newItem.getId());
+        ItemHistory historyEntry = ItemHistory.builder()
+                .item(item)
+                .previousStatus(item.getHistory().isEmpty() ? null
+                        : item.getHistory().getLast().getNewStatus())
+                .newStatus(ItemStatus.DRAFT)
+                .changedAt(LocalDateTime.now())
+                .changedBy(changedBy)
+                .fileName(file.getOriginalFilename())
+                .build();
 
-        storageService.uploadExplanatoryFile(userId, projectId, newItem.getId(), file);
+        item.getHistory().add(historyEntry);
+        projectRepository.save(savedProject);
+
+        Long historyId = item.getHistory().getLast().getId();
+        storageService.uploadExplanatoryFile(userId, projectId, item.getId(), historyId, file);
+
+        log.info("Draft created for projectId: {}, itemId: {}, historyId: {}", projectId, item.getId(), historyId);
     }
 
     public void submitItem(Long itemId, Long studentId) {
@@ -204,19 +192,26 @@ public class ExplanatoryNoteItemService {
         log.info("Explanatory note item with id: {} rejected successfully", itemId);
     }
 
-    public InputStream getItemFile(Long userId, Long projectId, Long itemId) throws Exception {
+    public InputStream getItemFile(Long userId, Long projectId, Long itemId, Long historyId) throws Exception {
         ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
-                () -> new IllegalArgumentException("Explanatory note item not found with id: " + itemId));
+                () -> new IllegalArgumentException("Explanatory tem not found with id: " + itemId));
 
-        InputStream inputStream = storageService.downloadExplanatoryFile(userId, projectId, itemId, item.getFileName());
+        ItemHistory targetHistory;
 
-        if (inputStream == null) {
-            log.error("File not found for userId: {}, projectId; {}, itemId: {}", userId, projectId,
-                    itemId);
-            throw new IllegalArgumentException("File not found for item with id: " + itemId);
+        if (historyId != null) {
+            targetHistory = item.getHistory().stream()
+                    .filter(h -> h.getId().equals(historyId) && h.getFileName() != null)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("History entry not found: " + historyId));
+        } else {
+            targetHistory = item.getHistory().stream()
+                    .filter(h -> h.getFileName() != null)
+                    .reduce((first, second) -> second)
+                    .orElseThrow(() -> new IllegalArgumentException("No file found for item: " + itemId));
         }
 
-        return inputStream;
+        return storageService.downloadExplanatoryFile(
+                userId, projectId, itemId, targetHistory.getId(), targetHistory.getFileName());
     }
 
     public boolean isItemBelongsToStudent(Long itemId, Long studentId) {
