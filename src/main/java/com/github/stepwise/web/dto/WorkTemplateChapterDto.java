@@ -1,7 +1,5 @@
 package com.github.stepwise.web.dto;
 
-import java.time.LocalDate;
-
 import com.github.stepwise.entity.WorkTemplate;
 import com.github.stepwise.entity.WorkTemplateChapter;
 
@@ -18,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class WorkChapterDto {
+public class WorkTemplateChapterDto {
 
     @NotNull(message = "index is required")
     @Positive(message = "index must be positive")
@@ -31,11 +29,8 @@ public class WorkChapterDto {
     @Size(min = 3, max = 300, message = "description must be between 3 and 300 characters if provided")
     private String description;
 
-    @NotNull(message = "deadline is required")
-    private LocalDate deadline;
-
-    public static WorkChapterDto fromEntity(WorkTemplateChapter chapter) {
-        return WorkChapterDto.builder()
+    public static WorkTemplateChapterDto fromEntity(WorkTemplateChapter chapter) {
+        return WorkTemplateChapterDto.builder()
                 .index(chapter.getIndexOfChapter())
                 .title(chapter.getTitle())
                 .description(chapter.getDescription())

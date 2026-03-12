@@ -33,11 +33,11 @@ public class TemplateResDto {
 
     private LocalDateTime createdAt;
 
-    private List<WorkChapterDto> chapters;
+    private List<WorkTemplateChapterDto> chapters;
 
     public static TemplateResDto fromEntity(WorkTemplate work) {
-        List<WorkChapterDto> chapters = work.getWorkTemplateChapters().stream()
-                .map(WorkChapterDto::fromEntity)
+        List<WorkTemplateChapterDto> chapters = work.getWorkTemplateChapters().stream()
+                .map(WorkTemplateChapterDto::fromEntity)
                 .toList();
 
         return TemplateResDto.builder()

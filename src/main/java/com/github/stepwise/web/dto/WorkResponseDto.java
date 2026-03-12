@@ -1,10 +1,15 @@
 package com.github.stepwise.web.dto;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.stepwise.entity.AcademicWork;
+import com.github.stepwise.entity.AcademicWorkDeadline;
 import com.github.stepwise.entity.ProjectType;
 import com.github.stepwise.entity.WorkTemplate;
+import com.github.stepwise.entity.WorkTemplateChapter;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -59,9 +64,22 @@ public class WorkResponseDto {
     public static WorkResponseDto fromEntityWithChapters(AcademicWork acadmicWork) {
         WorkTemplate work = acadmicWork.getWorkTemplate();
 
-        List<WorkChapterDto> chapters = work.getWorkTemplateChapters().stream()
-                .map(WorkChapterDto::fromEntity)
-                .toList();
+        Map<Integer, AcademicWorkDeadline> deadlines = acadmicWork.getDeadlines().stream().collect(Collectors.toMap(
+                AcademicWorkDeadline::getIndexOfChapter,
+                deadline -> deadline));
+        Map<Integer, WorkTemplateChapter> chapters = work.getWorkTemplateChapters().stream().collect(Collectors.toMap(
+                WorkTemplateChapter::getIndexOfChapter,
+                chapter -> chapter));
+
+        List<WorkChapterDto> chaptersDtos = chapters.entrySet().stream().map(c -> {
+            WorkTemplateChapter ch = c.getValue();
+
+            return new WorkChapterDto(
+                    ch.getIndexOfChapter(),
+                    ch.getTitle(),
+                    ch.getDescription(),
+                    deadlines.containsKey(c.getKey()) ? deadlines.get(c.getKey()).getDeadline().toLocalDate() : null);
+        }).toList();
 
         return WorkResponseDto.builder()
                 .id(work.getId())
@@ -74,7 +92,7 @@ public class WorkResponseDto {
                 .teacherLastName(work.getTeacher().getProfile().getLastName())
                 .teacherMiddleName(work.getTeacher().getProfile().getMiddleName())
                 .groupName(acadmicWork.getGroup().getName())
-                .chapters(chapters)
+                .chapters(chaptersDtos)
                 .build();
     }
 }
