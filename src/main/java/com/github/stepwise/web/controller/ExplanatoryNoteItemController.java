@@ -2,7 +2,9 @@ package com.github.stepwise.web.controller;
 
 import java.io.InputStream;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -116,18 +118,17 @@ public class ExplanatoryNoteItemController {
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
         Long targetUserId = userId == null ? appUserDetails.getId() : userId;
 
-        log.info("Downloading item file for userId: {}, projectId: {}, itemId: {}", targetUserId, projectId,
-                itemId);
-
         if (appUserDetails.getRole() == UserRole.STUDENT && !appUserDetails.getId().equals(targetUserId)) {
-            log.warn("Unauthorized access attempt by userId: {}, projectId: {}, itemId: {}",
-                    appUserDetails.getId(), projectId, itemId);
             throw new IllegalArgumentException("Unauthorized access to item file");
         }
 
         InputStream inputStream = explanatoryNoteItemService.getItemFile(targetUserId, projectId, itemId, historyId);
+        String fileName = explanatoryNoteItemService.getItemFileName(itemId, historyId);
 
-        return new ResponseEntity<>(new InputStreamResource(inputStream), HttpStatus.OK);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                .body(new InputStreamResource(inputStream));
     }
 
 }

@@ -7,8 +7,10 @@ import com.github.stepwise.entity.ItemHistory;
 import com.github.stepwise.entity.ItemStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Data
 @Builder
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -27,12 +29,15 @@ public class HistoryItemDto {
 
     private UserResponseDto changedBy;
 
+    private String fileName;
+
     public static HistoryItemDto fromEntity(ItemHistory item) {
         return HistoryItemDto.builder()
                 .id(item.getId())
                 .previousStatus(item.getPreviousStatus())
                 .newStatus(item.getNewStatus())
                 .teacherComment(item.getTeacherComment())
+                .fileName(item.getFileName())
                 .changedAt(item.getChangedAt())
                 .changedBy(UserResponseDto.fromUser(item.getChangedBy()))
                 .build();

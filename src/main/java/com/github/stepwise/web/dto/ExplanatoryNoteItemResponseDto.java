@@ -24,8 +24,6 @@ public class ExplanatoryNoteItemResponseDto {
     @Builder.Default
     private ItemStatus status = ItemStatus.DRAFT;
 
-    private String fileName;
-
     private List<HistoryItemDto> history;
 
     public static ExplanatoryNoteItemResponseDto fromEntity(ExplanatoryNoteItem item) {

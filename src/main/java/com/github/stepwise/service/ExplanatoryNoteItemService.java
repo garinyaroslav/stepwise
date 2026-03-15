@@ -192,6 +192,24 @@ public class ExplanatoryNoteItemService {
         log.info("Explanatory note item with id: {} rejected successfully", itemId);
     }
 
+    public String getItemFileName(Long itemId, Long historyId) {
+        ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item not found: " + itemId));
+
+        if (historyId != null) {
+            return item.getHistory().stream()
+                    .filter(h -> h.getId().equals(historyId) && h.getFileName() != null)
+                    .findFirst()
+                    .map(ItemHistory::getFileName)
+                    .orElseThrow(() -> new IllegalArgumentException("History not found: " + historyId));
+        }
+        return item.getHistory().stream()
+                .filter(h -> h.getFileName() != null)
+                .reduce((first, second) -> second)
+                .map(ItemHistory::getFileName)
+                .orElseThrow(() -> new IllegalArgumentException("No file for item: " + itemId));
+    }
+
     public InputStream getItemFile(Long userId, Long projectId, Long itemId, Long historyId) throws Exception {
         ExplanatoryNoteItem item = explanatoryNoteRepository.findById(itemId).orElseThrow(
                 () -> new IllegalArgumentException("Explanatory tem not found with id: " + itemId));
