@@ -70,7 +70,7 @@ public class ExplanatoryNoteItemController {
     @PostMapping("/{id}/approval")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<Void> approveExplanatoryNoteItem(@PathVariable Long id,
-            @Valid @RequestBody TeacherCommentDto teacherCommentDto,
+            @RequestBody TeacherCommentDto teacherCommentDto,
             @AuthenticationPrincipal UserDetails userDetails) throws Exception {
         Long currentTeacherId = ((AppUserDetails) userDetails).getId();
 
