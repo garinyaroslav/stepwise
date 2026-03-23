@@ -1,6 +1,9 @@
 package com.github.stepwise.web.controller;
 
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -126,7 +129,9 @@ public class ExplanatoryNoteItemController {
         String fileName = explanatoryNoteItemService.getItemFileName(itemId, historyId);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''"
+                                + URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
                 .body(new InputStreamResource(inputStream));
     }

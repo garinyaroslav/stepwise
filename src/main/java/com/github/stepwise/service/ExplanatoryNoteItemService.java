@@ -2,6 +2,7 @@ package com.github.stepwise.service;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,14 +52,14 @@ public class ExplanatoryNoteItemService {
                     "User with id " + userId + " is not the owner of project with id: " + projectId);
 
         List<ExplanatoryNoteItem> items = project.getItems();
+        items.sort(Comparator.comparing(ExplanatoryNoteItem::getOrderNumber));
 
         if (!items.isEmpty()) {
             if (items.size() >= (int) project.getAcademicWork().getWorkTemplate().getCountOfChapters()
-                    && (items.getLast().getStatus() == ItemStatus.SUBMITTED
-                            || items.getLast().getStatus() == ItemStatus.APPROVED))
+                    && items.getLast().getStatus().equals(ItemStatus.APPROVED))
                 throw new IllegalArgumentException("Project already has all items submitted");
 
-            if (items.getLast().getStatus() == ItemStatus.SUBMITTED)
+            if (items.getLast().getStatus().equals(ItemStatus.SUBMITTED))
                 throw new IllegalArgumentException("Cannot submit more than one item at a time");
         }
 
