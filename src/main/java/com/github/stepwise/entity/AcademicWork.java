@@ -45,4 +45,8 @@ public class AcademicWork {
     @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<AcademicWorkDeadline> deadlines = new ArrayList<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DefenseSchedule> defenseSchedules = new ArrayList<>();
+
 }
