@@ -8,7 +8,7 @@ import com.github.stepwise.entity.DefenseSchedule;
 
 public interface DefenseScheduleRepository extends JpaRepository<DefenseSchedule, Long> {
 
-    List<DefenseSchedule> findByAcademicWorkIdAndIsActiveTrue(Long academicWorkId);
+    List<DefenseSchedule> findByAcademicWorkId(Long academicWorkId);
 
     @Query("SELECT COUNT(r) FROM DefenseRegistration r WHERE r.defenseSchedule.id = :scheduleId")
     int countRegistrations(@Param("scheduleId") Long scheduleId);

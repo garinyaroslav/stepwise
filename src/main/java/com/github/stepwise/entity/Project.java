@@ -54,7 +54,7 @@ public class Project {
     private List<ExplanatoryNoteItem> items = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'IN_PROGRESS'")
     @Builder.Default
     private ProjectStatus status = ProjectStatus.IN_PROGRESS;
 
@@ -80,5 +80,6 @@ public class Project {
         this.description = description;
         this.student = student;
         this.academicWork = academicWork;
+        this.status = ProjectStatus.IN_PROGRESS;
     }
 }

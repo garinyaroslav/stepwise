@@ -62,7 +62,7 @@ public class DefenseService {
         log.info("Fetching defense schedules for academicWorkId: {}", academicWorkId);
 
         return scheduleRepository
-                .findByAcademicWorkIdAndIsActiveTrue(academicWorkId)
+                .findByAcademicWorkId(academicWorkId)
                 .stream()
                 .map(s -> {
                     int count = scheduleRepository.countRegistrations(s.getId());

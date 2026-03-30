@@ -21,7 +21,7 @@ Stepwise is a Spring Boot application designed for stage-by-stage tracking and m
 
 ## Prerequisites
 
-- **Java 17** or higher
+- **Java 21** or higher
 - **PostgreSQL 15+**
 - **MinIO** (local or remote instance)
 - **Docker** (optional, for running PostgreSQL and MinIO locally)

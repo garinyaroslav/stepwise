@@ -48,7 +48,7 @@ public class WorkResponseDto {
     public static WorkResponseDto fromEntity(AcademicWork academicWork) {
         WorkTemplate work = academicWork.getWorkTemplate();
         return WorkResponseDto.builder()
-                .id(work.getId())
+                .id(academicWork.getId())
                 .title(work.getWorkTitle())
                 .description(work.getWorkDescription())
                 .countOfChapters(work.getCountOfChapters())
@@ -82,7 +82,7 @@ public class WorkResponseDto {
         }).toList();
 
         return WorkResponseDto.builder()
-                .id(work.getId())
+                .id(acadmicWork.getId())
                 .title(work.getWorkTitle())
                 .description(work.getWorkDescription())
                 .countOfChapters(work.getCountOfChapters())
