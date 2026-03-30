@@ -48,10 +48,6 @@ public class DefenseSchedule {
     private String comment;
 
     @Builder.Default
-    @Column(nullable = false)
-    private boolean isActive = true;
-
-    @Builder.Default
     @OneToMany(mappedBy = "defenseSchedule", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DefenseRegistration> registrations = new ArrayList<>();
 

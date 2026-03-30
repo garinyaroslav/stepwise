@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.github.stepwise.configuration.MailConfigurationProperties;
 import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
+import com.github.stepwise.entity.ProjectStatus;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.UserRepository;
@@ -80,7 +81,7 @@ public class ProjectService {
             throw new IllegalArgumentException("Cannot approve project with id: " + projectId);
         }
 
-        project.setApprovedForDefense(true);
+        project.setStatus(ProjectStatus.APPROVED_FOR_DEFENSE);
         project.setApprovedForDefenseAt(LocalDateTime.now());
 
         Project updatedProject = projectRepository.save(project);

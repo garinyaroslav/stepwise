@@ -5,6 +5,8 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
+import com.github.stepwise.entity.ProjectStatus;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,7 +31,7 @@ public class ProjectResponseDto {
     @Builder.Default
     private List<ExplanatoryNoteItemResponseDto> items = new ArrayList<>();
 
-    private boolean isApprovedForDefense;
+    private ProjectStatus status;
 
     public static ProjectResponseDto fromEntity(Project project) {
         return fromEntity(project, false);
@@ -49,7 +51,7 @@ public class ProjectResponseDto {
                 .description(project.getDescription())
                 .owner(owner)
                 .items(items)
-                .isApprovedForDefense(project.isApprovedForDefense())
+                .status(project.getStatus())
                 .build();
     }
 
@@ -58,7 +60,7 @@ public class ProjectResponseDto {
                 .id(project.getId())
                 .title(project.getTitle())
                 .description(project.getDescription())
-                .isApprovedForDefense(project.isApprovedForDefense())
+                .status(project.getStatus())
                 .build();
     }
 }

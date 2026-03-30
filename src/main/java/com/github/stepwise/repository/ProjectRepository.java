@@ -1,6 +1,7 @@
 package com.github.stepwise.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,5 +24,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     List<Project> findByAcademicWorkInAndStudentIdIn(List<AcademicWork> academicWorks, List<Long> studentIds);
 
     List<Project> findByAcademicWorkIdInAndStudentIdIn(List<Long> academicWorkIds, List<Long> studentIds);
+
+    Optional<Project> findByStudentIdAndAcademicWorkId(Long studentId, Long academicWorkId);
 
 }
