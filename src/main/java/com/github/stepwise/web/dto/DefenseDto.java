@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import com.github.stepwise.entity.DefenseRegistration;
 import com.github.stepwise.entity.DefenseSchedule;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -90,4 +92,14 @@ public class DefenseDto {
         }
 
     }
+
+    @Data
+    public class DefendProjectDto {
+
+        @NotNull
+        @Min(1)
+        @Max(5)
+        private Integer grade;
+    }
+
 }

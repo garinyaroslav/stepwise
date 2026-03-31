@@ -17,6 +17,7 @@ import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.ProjectService;
+import com.github.stepwise.web.dto.DefenseDto.DefendProjectDto;
 import com.github.stepwise.web.dto.ProjectResponseDto;
 import com.github.stepwise.web.dto.UpdateProjectDto;
 import jakarta.validation.Valid;
@@ -126,6 +127,24 @@ public class ProjectController {
         }
 
         var updatedProject = projectService.approve(projectId);
+
+        return ResponseEntity.ok(ProjectResponseDto.fromEntityBasic(updatedProject));
+    }
+
+    @PostMapping("/{projectId}/defend")
+    @PreAuthorize("hasRole('ROLE_TEACHER')")
+    public ResponseEntity<ProjectResponseDto> defendProject(@PathVariable Long projectId,
+            @Valid @RequestBody DefendProjectDto dto, @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("Marking project id: {} as defended with grade: {}", projectId, dto.getGrade());
+        Long teacherId = ((AppUserDetails) userDetails).getId();
+
+        if (!projectService.isProjectBelongsToTeacher(projectId, teacherId)) {
+            log.error("Project with id: {} does not belong to teacher with id: {}", projectId, teacherId);
+            throw new IllegalArgumentException(
+                    "Project not found with id: " + projectId + " for teacher with id: " + teacherId);
+        }
+
+        var updatedProject = projectService.defend(projectId, dto.getGrade());
 
         return ResponseEntity.ok(ProjectResponseDto.fromEntityBasic(updatedProject));
     }

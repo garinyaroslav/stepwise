@@ -80,22 +80,39 @@ public class DefenseService {
 
         Long academicWorkId = schedule.getAcademicWork().getId();
 
-        boolean alreadyRegistered = registrationRepository.existsByStudentIdAndAcademicWorkId(studentId,
-                academicWorkId);
-        if (alreadyRegistered)
-            throw new IllegalStateException(
-                    "Student is already registered for a defense session of this work");
-
         Project project = projectRepository
                 .findByStudentIdAndAcademicWorkId(studentId, academicWorkId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Project not found for student %s and work %s".formatted(studentId, academicWorkId)));
 
+        if (project.getStatus() == ProjectStatus.DEFENDED)
+            throw new IllegalStateException("Project is already defended");
+
         if (project.getStatus() != ProjectStatus.APPROVED_FOR_DEFENSE)
             throw new IllegalStateException("Student is not approved for defense yet");
 
-        int currentCount = scheduleRepository.countRegistrations(scheduleId);
+        registrationRepository
+                .findByStudentIdAndAcademicWorkId(studentId, academicWorkId)
+                .ifPresent(existing -> {
+                    DefenseSchedule previousSchedule = existing.getDefenseSchedule();
 
+                    // Время, после которого предыдущая защита считается завершённой
+                    LocalDateTime previousEnd = previousSchedule.getEndTime() != null
+                            ? previousSchedule.getEndTime()
+                            : previousSchedule.getStartTime();
+
+                    if (LocalDateTime.now().isBefore(previousEnd))
+                        throw new IllegalStateException(
+                                "Cannot re-register before the previous defense session ends at %s"
+                                        .formatted(previousEnd));
+
+                    log.info("Student {} previous defense session ended, removing old registration id: {}",
+                            studentId, existing.getId());
+                    registrationRepository.delete(existing);
+                    registrationRepository.flush();
+                });
+
+        int currentCount = scheduleRepository.countRegistrations(scheduleId);
         if (schedule.getMaxStudents() != null && currentCount >= schedule.getMaxStudents())
             throw new IllegalStateException("This defense session is full");
 

@@ -110,6 +110,52 @@ public class ProjectService {
         return updatedProject;
     }
 
+    public Project defend(Long projectId, Integer grade) {
+        log.info("Marking project id: {} as defended with grade: {}", projectId, grade);
+
+        if (grade < 1 || grade > 5) {
+            throw new IllegalArgumentException("Grade must be between 1 and 5");
+        }
+
+        Project project = projectRepository.findById(projectId).orElseThrow(() -> {
+            log.error("Project with id {} not found", projectId);
+            return new IllegalArgumentException("Project not found with id: " + projectId);
+        });
+
+        if (project.getStatus() != ProjectStatus.APPROVED_FOR_DEFENSE) {
+            log.error("Cannot mark project id: {} as defended, current status: {}", projectId, project.getStatus());
+            throw new IllegalStateException(
+                    "Project must be in APPROVED_FOR_DEFENSE status to be marked as defended");
+        }
+
+        project.setStatus(ProjectStatus.DEFENDED);
+        project.setGrade(grade);
+        project.setDefendedAt(LocalDateTime.now());
+
+        Project updatedProject = projectRepository.save(project);
+        log.info("Project id: {} marked as defended with grade: {}", projectId, grade);
+
+        try {
+            User user = userRepository.findById(updatedProject.getStudent().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Owner of the project is not found"));
+
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(user.getEmail());
+            message.setFrom(mailConfig.getUsername());
+            message.setSubject("Результат защиты вашей работы");
+            message.setText(String.format(
+                    "Ваша работа на тему: \"%s\" успешно защищена. Итоговая оценка: %d.",
+                    updatedProject.getTitle(), grade));
+            mailSender.send(message);
+
+            log.info("Defense result email sent to: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send defense result email for project id: {}", projectId, e);
+        }
+
+        return updatedProject;
+    }
+
     public boolean isProjectBelongsToStudent(Long projectId, Long studentId) {
         log.info("Checking if project with id: {} belongs to student with id: {}", projectId,
                 studentId);
