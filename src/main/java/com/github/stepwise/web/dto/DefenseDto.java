@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 public class DefenseDto {
 
@@ -94,7 +95,8 @@ public class DefenseDto {
     }
 
     @Data
-    public class DefendProjectDto {
+    @NoArgsConstructor
+    public static class DefendProjectDto {
 
         @NotNull
         @Min(1)

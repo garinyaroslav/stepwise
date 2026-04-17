@@ -28,6 +28,8 @@ public class ProjectResponseDto {
 
     private UserResponseDto owner;
 
+    private Integer grade;
+
     @Builder.Default
     private List<ExplanatoryNoteItemResponseDto> items = new ArrayList<>();
 
@@ -50,6 +52,7 @@ public class ProjectResponseDto {
                 .title(project.getTitle())
                 .description(project.getDescription())
                 .owner(owner)
+                .grade(project.getGrade())
                 .items(items)
                 .status(project.getStatus())
                 .build();
@@ -60,6 +63,7 @@ public class ProjectResponseDto {
                 .id(project.getId())
                 .title(project.getTitle())
                 .description(project.getDescription())
+                .grade(project.getGrade())
                 .status(project.getStatus())
                 .build();
     }

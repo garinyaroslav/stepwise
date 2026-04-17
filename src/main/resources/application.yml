@@ -43,3 +43,6 @@ minio:
 client:
   url: ${CLIENT_URL:http://localhost:5173}
   refresh-token-url: ${client.url}${REFRESH_TOKEN_URL:/reset?token=}
+
+gigaChat:
+  authKey: ${GIGACHAT_AUTH_KEY:123authkey}

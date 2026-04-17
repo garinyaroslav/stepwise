@@ -3,6 +3,7 @@ package com.github.stepwise.web.controller;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.ExplanatoryNoteItemService;
+import com.github.stepwise.service.GigaChatService;
 import com.github.stepwise.web.dto.TeacherCommentDto;
 
 import jakarta.validation.Valid;
@@ -37,6 +39,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ExplanatoryNoteItemController {
 
     private final ExplanatoryNoteItemService explanatoryNoteItemService;
+
+    private final GigaChatService gigaChatService;
 
     @PostMapping(path = "/draft", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('ROLE_STUDENT')")
@@ -134,6 +138,31 @@ public class ExplanatoryNoteItemController {
                                 + URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
                 .body(new InputStreamResource(inputStream));
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_STUDENT')")
+    public ResponseEntity<Map<String, String>> getItemSummary(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam Long studentId,
+            @RequestParam Long projectId,
+            @RequestParam Long itemId,
+            @RequestParam Long historyId,
+            @RequestParam String filename) {
+
+        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
+
+        if (appUserDetails.getRole() == UserRole.STUDENT
+                && !appUserDetails.getId().equals(studentId)) {
+            throw new IllegalArgumentException("Unauthorized access to item summary");
+        }
+
+        log.info("Generating summary for itemId: {}, historyId: {}, requestedBy: {}",
+                itemId, historyId, appUserDetails.getId());
+
+        String summary = gigaChatService.summarizeReport(studentId, projectId, itemId, historyId, filename);
+
+        return ResponseEntity.ok(Map.of("summary", summary));
     }
 
 }
