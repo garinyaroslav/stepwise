@@ -55,12 +55,6 @@ public class ExceptionHandlerAdvice {
                 HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<?> handleNullPointerException(NullPointerException ex) {
-        return new ResponseEntity<>(new MessageResponse("Internal error: " + ex.getMessage()),
-                HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGlobalException(Exception ex) {
         return new ResponseEntity<>(new MessageResponse("Unexpected error: " + ex.getMessage()),

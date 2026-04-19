@@ -74,10 +74,11 @@ public class GigaChatService {
                             .build())
                     .build());
         } catch (HttpClientException ex) {
-            System.out.println(ex.statusCode() + " " + ex.bodyAsString());
+            throw new RuntimeException("Ошибка при получении данных от GigaChat: " + ex.getMessage(), ex);
         }
 
         if (res == null || res.choices() == null || res.choices().isEmpty()) {
+            log.info("{}", res);
             throw new RuntimeException("Пустой ответ от GigaChat");
         }
 

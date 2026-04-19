@@ -1,6 +1,7 @@
 package com.github.stepwise.configuration;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import chat.giga.client.GigaChatClient;
@@ -17,6 +18,7 @@ public class GigaChatConfig {
         this.authKey = authKey;
     }
 
+    @Bean
     public GigaChatClient gigaChatClient() {
         return GigaChatClient.builder()
                 .verifySslCerts(false)

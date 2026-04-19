@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.ExplanatoryNoteItemService;
@@ -141,15 +142,13 @@ public class ExplanatoryNoteItemController {
     }
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_STUDENT')")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN')")
     public ResponseEntity<Map<String, String>> getItemSummary(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam Long studentId,
             @RequestParam Long projectId,
             @RequestParam Long itemId,
-            @RequestParam Long historyId,
-            @RequestParam String filename) {
-
+            @RequestParam Long historyId) {
         AppUserDetails appUserDetails = (AppUserDetails) userDetails;
 
         if (appUserDetails.getRole() == UserRole.STUDENT
@@ -160,9 +159,8 @@ public class ExplanatoryNoteItemController {
         log.info("Generating summary for itemId: {}, historyId: {}, requestedBy: {}",
                 itemId, historyId, appUserDetails.getId());
 
-        String summary = gigaChatService.summarizeReport(studentId, projectId, itemId, historyId, filename);
-
-        return ResponseEntity.ok(Map.of("summary", summary));
+        return ResponseEntity.ok(Map.of("summary", gigaChatService.summarizeReport(studentId, projectId,
+                itemId, historyId, explanatoryNoteItemService.getItemFileName(itemId, historyId))));
     }
 
 }
