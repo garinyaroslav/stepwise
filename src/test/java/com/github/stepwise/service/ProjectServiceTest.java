@@ -31,6 +31,7 @@ import com.github.stepwise.entity.AcademicWork;
 import com.github.stepwise.entity.ExplanatoryNoteItem;
 import com.github.stepwise.entity.ItemStatus;
 import com.github.stepwise.entity.Project;
+import com.github.stepwise.entity.ProjectStatus;
 import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
@@ -110,7 +111,7 @@ class ProjectServiceTest {
                 .description("Project Description")
                 .student(student)
                 .academicWork(academicWork)
-                .isApprovedForDefense(false)
+                .status(ProjectStatus.IN_PROGRESS)
                 .items(new ArrayList<>())
                 .build();
     }
@@ -209,7 +210,7 @@ class ProjectServiceTest {
                 .title("Test Project")
                 .academicWork(academicWork)
                 .student(student)
-                .isApprovedForDefense(false)
+                .status(ProjectStatus.IN_PROGRESS)
                 .items(new ArrayList<>())
                 .build();
 
@@ -225,7 +226,7 @@ class ProjectServiceTest {
         Project result = projectService.approve(1L);
 
         assertNotNull(result);
-        assertTrue(result.isApprovedForDefense());
+        assertEquals(ProjectStatus.APPROVED_FOR_DEFENSE, result.getStatus());
         assertNotNull(result.getApprovedForDefenseAt());
         verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
     }
@@ -276,7 +277,7 @@ class ProjectServiceTest {
                 .title("Test Project")
                 .academicWork(academicWork)
                 .student(student)
-                .isApprovedForDefense(false)
+                .status(ProjectStatus.IN_PROGRESS)
                 .items(new ArrayList<>())
                 .build();
 
@@ -290,7 +291,7 @@ class ProjectServiceTest {
 
         Project result = projectService.approve(1L);
 
-        assertTrue(result.isApprovedForDefense());
+        assertEquals(ProjectStatus.APPROVED_FOR_DEFENSE, result.getStatus());
         verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
