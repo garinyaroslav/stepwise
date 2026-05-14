@@ -2,6 +2,13 @@ package com.github.stepwise.entity;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+import org.hibernate.envers.RelationTargetAuditMode;
+
+import com.github.stepwise.audit.Auditable;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,15 +23,18 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "usr")
-public class User {
+@Audited
+public class User extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,9 +43,11 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
+    @NotAudited
     @Column(nullable = false)
     private String password;
 
+    @NotAudited
     @Column(name = "temp_password")
     private String tempPassword;
 
@@ -48,9 +60,11 @@ public class User {
 
     @Builder.Default
     @ManyToMany(mappedBy = "students")
+    @NotAudited
     private List<StudyGroup> groups = new ArrayList<>();
 
     @OneToOne(cascade = CascadeType.ALL)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private Profile profile;
 
     public User(String username, String password) {
@@ -74,5 +88,4 @@ public class User {
         this.role = role;
         this.profile = profile;
     }
-
 }

@@ -3,6 +3,13 @@ package com.github.stepwise.entity;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+import org.hibernate.envers.RelationTargetAuditMode;
+
+import com.github.stepwise.audit.Auditable;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,15 +28,18 @@ import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
 @Builder
 @AllArgsConstructor
 @Table(name = "student_project")
-public class Project {
+@Audited
+public class Project extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,14 +53,17 @@ public class Project {
 
     @ManyToOne
     @JoinColumn(name = "student_id")
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private User student;
 
     @ManyToOne
     @JoinColumn(name = "academic_work_id", nullable = false)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private AcademicWork academicWork;
 
     @Builder.Default
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @NotAudited
     private List<ExplanatoryNoteItem> items = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)

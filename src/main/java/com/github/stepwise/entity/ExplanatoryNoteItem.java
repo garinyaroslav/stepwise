@@ -3,6 +3,12 @@ package com.github.stepwise.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+import org.hibernate.envers.RelationTargetAuditMode;
+
+import com.github.stepwise.audit.Auditable;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,15 +25,18 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "explanatory_note_item")
-public class ExplanatoryNoteItem {
+@Audited
+public class ExplanatoryNoteItem extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,10 +52,12 @@ public class ExplanatoryNoteItem {
 
     @Builder.Default
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @NotAudited
     private List<ItemHistory> history = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "student_project_id", nullable = false)
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private Project project;
 
     public ExplanatoryNoteItem(Integer orderNumber, ItemStatus status, Project project) {

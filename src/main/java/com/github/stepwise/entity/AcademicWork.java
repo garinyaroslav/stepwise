@@ -2,6 +2,11 @@ package com.github.stepwise.entity;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hibernate.envers.Audited;
+
+import com.github.stepwise.audit.Auditable;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,15 +20,18 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "academic_work")
-public class AcademicWork {
+@Audited
+public class AcademicWork extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

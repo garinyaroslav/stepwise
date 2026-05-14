@@ -32,6 +32,7 @@ dependencies {
     implementation("chat.giga:gigachat-java:0.1.15")
     implementation("org.apache.pdfbox:pdfbox:3.0.7")
     implementation("org.apache.poi:poi-ooxml:5.4.1")
+    implementation("org.springframework.data:spring-data-envers")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-web")

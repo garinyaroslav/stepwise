@@ -18,6 +18,19 @@ spring:
   jpa:
     generate-ddl: true
     open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: stepwise_schema
+        org.hibernate.envers:
+          audit_table_suffix: _aud
+          revision_field_name: rev
+          revision_type_field_name: rev_type
+          store_data_at_delete: true
+          global_with_modified_flag: true
+          modified_flag_suffix: _mod
+          default_schema: stepwise_schema
   mail:
     host: smtp.mail.ru
     port: 2525

@@ -1,6 +1,7 @@
 package com.github.stepwise.web.dto;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -47,7 +48,7 @@ public class TemplateResDto {
                 .workTitle(work.getWorkTitle())
                 .workDescription(work.getWorkDescription())
                 .type(work.getType())
-                .createdAt(work.getCreatedAt())
+                .createdAt(LocalDateTime.ofInstant(work.getCreatedAt(), ZoneId.systemDefault()))
                 .chapters(chapters)
                 .build();
     }
