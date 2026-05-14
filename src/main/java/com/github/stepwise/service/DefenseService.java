@@ -96,7 +96,6 @@ public class DefenseService {
                 .ifPresent(existing -> {
                     DefenseSchedule previousSchedule = existing.getDefenseSchedule();
 
-                    // Время, после которого предыдущая защита считается завершённой
                     LocalDateTime previousEnd = previousSchedule.getEndTime() != null
                             ? previousSchedule.getEndTime()
                             : previousSchedule.getStartTime();
