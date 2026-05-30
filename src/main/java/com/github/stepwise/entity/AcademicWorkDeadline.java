@@ -35,6 +35,7 @@ public class AcademicWorkDeadline extends Auditable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // TODO: change name to "academic_work_id"
     @ManyToOne
     @JoinColumn(name = "work_template_id", nullable = false)
     @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
