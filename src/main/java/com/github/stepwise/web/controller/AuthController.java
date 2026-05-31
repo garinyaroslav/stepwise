@@ -2,6 +2,7 @@ package com.github.stepwise.web.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.service.AuthService;
@@ -38,6 +39,7 @@ public class AuthController {
     }
 
     @PostMapping("/users")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Object> registerUser(@Valid @RequestBody SignUpDto userDto) {
         log.info("Registering user: {}", userDto.getUsername());
 
