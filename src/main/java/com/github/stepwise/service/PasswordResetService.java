@@ -63,7 +63,7 @@ public class PasswordResetService {
         message.setSubject("Запрос на сброс пароля");
 
         message.setText(String.format(
-                "Ваш код для сброса парля: %s\nЕсли вы пользуетесь web-приложением перейдите по ссылке: %s",
+                "Ваш код для сброса пароля: %s\nЕсли вы пользуетесь web-приложением перейдите по ссылке: %s",
                 token, clientConfig.getRefreshTokenUrl() + token));
         mailSender.send(message);
 
