@@ -73,17 +73,16 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                // .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .cors(cors -> cors.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(
                         sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().permitAll());
-        // .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-        // .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**",
-        // "/api/auth/password/**")
-        // .permitAll().anyRequest()
-        // .authenticated());
+                .authorizeHttpRequests(authorizeRequests -> authorizeRequests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**",
+                                "/api/auth/password/**")
+                        .permitAll().anyRequest()
+                        .authenticated());
         http.addFilterBefore(authenticationJwtTokenFilter(),
                 UsernamePasswordAuthenticationFilter.class);
         return http.build();
