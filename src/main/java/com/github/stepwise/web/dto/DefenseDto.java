@@ -95,6 +95,24 @@ public class DefenseDto {
     }
 
     @Data
+    public static class RegistrationDetailsDto {
+
+        private Long registrationId;
+
+        private Long studentId;
+
+        private String firstName;
+
+        private String lastName;
+
+        private String username;
+
+        private Integer orderNumber;
+
+        private LocalDateTime registeredAt;
+    }
+
+    @Data
     @NoArgsConstructor
     public static class DefendProjectDto {
 

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.DefenseService;
+import com.github.stepwise.web.dto.DefenseDto;
 import com.github.stepwise.web.dto.DefenseDto.CreateScheduleDto;
 import com.github.stepwise.web.dto.DefenseDto.RegistrationResponseDto;
 import com.github.stepwise.web.dto.DefenseDto.ScheduleResponseDto;
@@ -41,6 +43,22 @@ public class DefenseController {
                 dto.getAcademicWorkId());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(defenseService.createSchedule(dto));
+    }
+
+    @DeleteMapping("/schedule/{scheduleId}")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN')")
+    public ResponseEntity<ScheduleResponseDto> deleteSchedule(@PathVariable Long scheduleId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("Teacher {} deleting defense schedule id: {}", ((AppUserDetails) userDetails).getId(), scheduleId);
+        return ResponseEntity.ok(defenseService.deleteSchedule(scheduleId));
+    }
+
+    @GetMapping("/schedule/{scheduleId}/registrations")
+    @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN', 'ROLE_STUDENT')")
+    public ResponseEntity<List<DefenseDto.RegistrationDetailsDto>> getRegistrations(
+            @PathVariable Long scheduleId) {
+        log.info("Fetching registrations for scheduleId: {}", scheduleId);
+        return ResponseEntity.ok(defenseService.getRegistrationsForSchedule(scheduleId));
     }
 
     @GetMapping("/schedule/work/{academicWorkId}")

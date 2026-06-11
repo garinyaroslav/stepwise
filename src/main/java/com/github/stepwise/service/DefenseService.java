@@ -1,24 +1,28 @@
 package com.github.stepwise.service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.github.stepwise.entity.AcademicWork;
 import com.github.stepwise.entity.DefenseRegistration;
 import com.github.stepwise.entity.DefenseSchedule;
+import com.github.stepwise.entity.Profile;
 import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.ProjectStatus;
+import com.github.stepwise.entity.User;
 import com.github.stepwise.repository.AcademicWorkRepository;
 import com.github.stepwise.repository.DefenceRegistrationRepository;
 import com.github.stepwise.repository.DefenseScheduleRepository;
 import com.github.stepwise.repository.ProjectRepository;
+import com.github.stepwise.web.dto.DefenseDto;
 import com.github.stepwise.web.dto.DefenseDto.CreateScheduleDto;
 import com.github.stepwise.web.dto.DefenseDto.RegistrationResponseDto;
 import com.github.stepwise.web.dto.DefenseDto.ScheduleResponseDto;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,6 +62,19 @@ public class DefenseService {
         return ScheduleResponseDto.fromEntity(schedule, 0);
     }
 
+    @Transactional
+    public ScheduleResponseDto deleteSchedule(Long scheduleId) {
+        DefenseSchedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found: " + scheduleId));
+
+        int regCount = scheduleRepository.countRegistrations(scheduleId);
+        ScheduleResponseDto response = ScheduleResponseDto.fromEntity(schedule, regCount);
+
+        scheduleRepository.delete(schedule);
+        log.info("Deleted defense schedule id: {}, had {} registrations", scheduleId, regCount);
+        return response;
+    }
+
     public List<ScheduleResponseDto> getSchedulesByWork(Long academicWorkId) {
         log.info("Fetching defense schedules for academicWorkId: {}", academicWorkId);
 
@@ -67,6 +84,33 @@ public class DefenseService {
                 .map(s -> {
                     int count = scheduleRepository.countRegistrations(s.getId());
                     return ScheduleResponseDto.fromEntity(s, count);
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DefenseDto.RegistrationDetailsDto> getRegistrationsForSchedule(Long scheduleId) {
+        log.info("Getting registrations by scheduleId: {}", scheduleId);
+
+        DefenseSchedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found: " + scheduleId));
+
+        return schedule.getRegistrations().stream()
+                .sorted(Comparator.comparing(DefenseRegistration::getOrderNumber,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(reg -> {
+                    User student = reg.getProject().getStudent();
+                    DefenseDto.RegistrationDetailsDto dto = new DefenseDto.RegistrationDetailsDto();
+                    dto.setRegistrationId(reg.getId());
+                    dto.setStudentId(student.getId());
+                    dto.setOrderNumber(reg.getOrderNumber());
+                    dto.setRegisteredAt(reg.getRegisteredAt());
+
+                    Profile profile = student.getProfile();
+                    dto.setFirstName(profile != null ? profile.getFirstName() : null);
+                    dto.setLastName(profile != null ? profile.getLastName() : null);
+                    dto.setUsername(student.getUsername());
+                    return dto;
                 })
                 .toList();
     }
