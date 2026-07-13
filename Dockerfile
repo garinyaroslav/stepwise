@@ -1,4 +1,4 @@
-FROM gradle:jdk25 AS build
+FROM eclipse-temurin:25-jdk-alpine AS build
 WORKDIR /app
 
 COPY build.gradle.kts settings.gradle.kts ./
