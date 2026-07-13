@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,11 +20,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.exception.NotFoundException;
 import com.github.stepwise.repository.UserRepository;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.utils.JwtUtil;
-
-import java.util.Optional;
+import com.github.stepwise.web.dto.SignInDto;
+import com.github.stepwise.web.dto.SignInResponseDto;
+import com.github.stepwise.web.dto.SignUpDto;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -58,160 +62,173 @@ class AuthServiceTest {
     }
 
     @Test
-    void isUsernameTaken_WhenUsernameExists_ShouldReturnTrue() {
-        when(userRepository.existsByUsername("existinguser")).thenReturn(true);
+    void authenticate_WithValidCredentials_ShouldReturnSignInResponse() {
+        SignInDto signInDto = new SignInDto("testuser", "password");
 
-        boolean result = authService.isUsernameTaken("existinguser");
-
-        assertTrue(result);
-        verify(userRepository, times(1)).existsByUsername("existinguser");
-    }
-
-    @Test
-    void isUsernameTaken_WhenUsernameNotExists_ShouldReturnFalse() {
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
-
-        boolean result = authService.isUsernameTaken("newuser");
-
-        assertFalse(result);
-        verify(userRepository, times(1)).existsByUsername("newuser");
-    }
-
-    @Test
-    void registerUser_WithStudentRole_ShouldEncodePasswordAndSave() {
-        User userToRegister = User.builder()
-                .username("newstudent")
-                .password("plainpassword")
-                .role(UserRole.STUDENT)
-                .build();
-
-        when(passwordEncoder.encode("plainpassword")).thenReturn("encodedpassword");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User result = authService.registerUser(userToRegister);
-
-        assertNotNull(result);
-        assertEquals("encodedpassword", result.getPassword());
-        assertEquals(UserRole.STUDENT, result.getRole());
-        verify(passwordEncoder, times(1)).encode("plainpassword");
-        verify(userRepository, times(1)).save(userToRegister);
-    }
-
-    @Test
-    void registerUser_WithNullRole_ShouldSetDefaultStudentRole() {
-        User userToRegister = User.builder()
-                .username("newuser")
-                .password("password")
-                .role(null)
-                .build();
-
-        when(passwordEncoder.encode("password")).thenReturn("encodedpassword");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User result = authService.registerUser(userToRegister);
-
-        assertNotNull(result);
-        assertEquals(UserRole.STUDENT, result.getRole());
-        assertEquals("encodedpassword", result.getPassword());
-    }
-
-    @Test
-    void registerUser_WithTeacherRole_ShouldPreserveRole() {
-        User userToRegister = User.builder()
-                .username("teacher")
-                .password("password")
-                .role(UserRole.TEACHER)
-                .build();
-
-        when(passwordEncoder.encode("password")).thenReturn("encodedpassword");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User result = authService.registerUser(userToRegister);
-
-        assertNotNull(result);
-        assertEquals(UserRole.TEACHER, result.getRole());
-        assertEquals("encodedpassword", result.getPassword());
-    }
-
-    @Test
-    void getUserByPrincipals_WithValidCredentials_ShouldReturnUser() {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(jwtUtils.generateToken("testuser")).thenReturn("jwt-token");
 
-        User result = authService.getUserByPrincipals("testuser", "password");
+        SignInResponseDto result = authService.authenticate(signInDto);
 
         assertNotNull(result);
-        assertEquals(user.getId(), result.getId());
-        assertEquals(user.getUsername(), result.getUsername());
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(userRepository, times(1)).findById(1L);
+        assertEquals("jwt-token", result.getToken());
+        assertEquals(1L, result.getUser().getId());
+        assertEquals(UserRole.STUDENT.name(), result.getUser().getRole());
+        assertFalse(result.isTemporaryPassword());
+
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(userRepository).findById(1L);
+        verify(jwtUtils).generateToken("testuser");
     }
 
     @Test
-    void getUserByPrincipals_WithInvalidCredentials_ShouldThrowException() {
+    void authenticate_WithTempPassword_ShouldReturnTempPasswordFlagTrue() {
+        User userWithTempPassword = User.builder()
+                .id(1L)
+                .username("testuser")
+                .password("password")
+                .tempPassword("temp123")
+                .role(UserRole.STUDENT)
+                .build();
+        AppUserDetails detailsWithTemp = new AppUserDetails(userWithTempPassword);
+
+        SignInDto signInDto = new SignInDto("testuser", "password");
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(detailsWithTemp);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(userWithTempPassword));
+        when(jwtUtils.generateToken("testuser")).thenReturn("jwt-token");
+
+        SignInResponseDto result = authService.authenticate(signInDto);
+
+        assertTrue(result.isTemporaryPassword());
+    }
+
+    @Test
+    void authenticate_WithInvalidCredentials_ShouldPropagateException() {
+        SignInDto signInDto = new SignInDto("testuser", "wrongpassword");
+
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Invalid credentials"));
 
         BadCredentialsException exception = assertThrows(BadCredentialsException.class,
-                () -> authService.getUserByPrincipals("testuser", "wrongpassword"));
+                () -> authService.authenticate(signInDto));
 
         assertEquals("Invalid credentials", exception.getMessage());
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository, never()).findById(anyLong());
+        verify(jwtUtils, never()).generateToken(anyString());
     }
 
     @Test
-    void getUserByPrincipals_WhenUserNotFound_ShouldThrowException() {
+    void authenticate_WhenUserNotFound_ShouldThrowEntityNotFoundException() {
+        SignInDto signInDto = new SignInDto("testuser", "password");
+
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> authService.getUserByPrincipals("testuser", "password"));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> authService.authenticate(signInDto));
 
-        assertEquals("User not found", exception.getMessage());
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(userRepository, times(1)).findById(1L);
+        assertEquals("User not found with id: 1", exception.getMessage());
+        verify(jwtUtils, never()).generateToken(anyString());
     }
 
     @Test
-    void getUserByPrincipals_ShouldCreateCorrectAuthenticationToken() {
+    void authenticate_ShouldBuildAuthenticationTokenFromDto() {
+        SignInDto signInDto = new SignInDto("testuser", "password");
+
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-
-        authService.getUserByPrincipals("testuser", "password");
-
-        verify(authenticationManager, times(1)).authenticate(
-                argThat(token -> token instanceof UsernamePasswordAuthenticationToken &&
-                        "testuser".equals(((UsernamePasswordAuthenticationToken) token).getPrincipal()) &&
-                        "password".equals(((UsernamePasswordAuthenticationToken) token).getCredentials())));
-    }
-
-    @Test
-    void getTokenByUsername_ShouldGenerateToken() {
         when(jwtUtils.generateToken("testuser")).thenReturn("jwt-token");
 
-        String result = authService.getTokenByUsername("testuser");
+        authService.authenticate(signInDto);
 
-        assertEquals("jwt-token", result);
-        verify(jwtUtils, times(1)).generateToken("testuser");
+        verify(authenticationManager).authenticate(argThat(token -> token instanceof UsernamePasswordAuthenticationToken
+                && "testuser".equals(token.getPrincipal())
+                && "password".equals(token.getCredentials())));
     }
 
     @Test
-    void getTokenByUsername_WithDifferentUsername_ShouldGenerateToken() {
-        when(jwtUtils.generateToken("anotheruser")).thenReturn("another-token");
+    void registerUser_WithStudentRole_ShouldEncodePasswordAndSave() {
+        SignUpDto dto = new SignUpDto();
+        dto.setUsername("newstudent");
+        dto.setPassword("plainpassword");
+        dto.setEmail("student@test.com");
+        dto.setRole(UserRole.STUDENT);
 
-        String result = authService.getTokenByUsername("anotheruser");
+        when(userRepository.existsByUsername("newstudent")).thenReturn(false);
+        when(passwordEncoder.encode("plainpassword")).thenReturn("encodedpassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertEquals("another-token", result);
-        verify(jwtUtils, times(1)).generateToken("anotheruser");
+        User result = authService.registerUser(dto);
+
+        assertNotNull(result);
+        assertEquals("encodedpassword", result.getPassword());
+        assertEquals(UserRole.STUDENT, result.getRole());
+        assertEquals("newstudent", result.getUsername());
+        verify(passwordEncoder).encode("plainpassword");
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void registerUser_WithNullRole_ShouldSetDefaultStudentRole() {
+        SignUpDto dto = new SignUpDto();
+        dto.setUsername("newuser");
+        dto.setPassword("password");
+        dto.setEmail("newuser@test.com");
+        dto.setRole(null);
+
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(passwordEncoder.encode("password")).thenReturn("encodedpassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User result = authService.registerUser(dto);
+
+        assertEquals(UserRole.STUDENT, result.getRole());
+        assertEquals("encodedpassword", result.getPassword());
+    }
+
+    @Test
+    void registerUser_WithTeacherRole_ShouldPreserveRole() {
+        SignUpDto dto = new SignUpDto();
+        dto.setUsername("teacher");
+        dto.setPassword("password");
+        dto.setEmail("teacher@test.com");
+        dto.setRole(UserRole.TEACHER);
+
+        when(userRepository.existsByUsername("teacher")).thenReturn(false);
+        when(passwordEncoder.encode("password")).thenReturn("encodedpassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User result = authService.registerUser(dto);
+
+        assertEquals(UserRole.TEACHER, result.getRole());
+        assertEquals("encodedpassword", result.getPassword());
+    }
+
+    @Test
+    void registerUser_WhenUsernameTaken_ShouldThrowException() {
+        SignUpDto dto = new SignUpDto("existinguser", "password", "existing@test.com", UserRole.STUDENT);
+
+        when(userRepository.existsByUsername("existinguser")).thenReturn(true);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> authService.registerUser(dto));
+
+        assertEquals("Username is already taken: existinguser", exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+        verify(passwordEncoder, never()).encode(anyString());
     }
 }

@@ -47,7 +47,7 @@ public class StudyGroup extends Auditable {
     private String name;
 
     @Builder.Default
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany
     @JoinTable(name = "group_student", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "student_id"))
     @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private List<User> students = new ArrayList<>();

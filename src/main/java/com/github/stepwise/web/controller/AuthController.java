@@ -3,24 +3,29 @@ package com.github.stepwise.web.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.github.stepwise.entity.User;
 import com.github.stepwise.service.AuthService;
 import com.github.stepwise.service.PasswordResetService;
 import com.github.stepwise.web.dto.MessageResponse;
-import com.github.stepwise.web.dto.ResetPasswrodDto;
+import com.github.stepwise.web.dto.ResetPasswordDto;
 import com.github.stepwise.web.dto.SignInDto;
 import com.github.stepwise.web.dto.SignInResponseDto;
 import com.github.stepwise.web.dto.SignUpDto;
 import com.github.stepwise.web.dto.UserResponseDto;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Slf4j
 public class AuthController {
 
     private final AuthService authService;
@@ -29,51 +34,30 @@ public class AuthController {
 
     @PostMapping("/sessions")
     public SignInResponseDto authenticateUser(@Valid @RequestBody SignInDto signInDto) {
-        log.info("Authenticating user: {}", signInDto.getUsername());
-
-        User user = authService.getUserByPrincipals(signInDto.getUsername(), signInDto.getPassword());
-        String token = authService.getTokenByUsername(user.getUsername());
-
-        return new SignInResponseDto(UserResponseDto.fromIdAndRole(user.getId(), user.getRole().name()), token,
-                user.getTempPassword() != null);
+        return authService.authenticate(signInDto);
     }
 
     @PostMapping("/users")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Object> registerUser(@Valid @RequestBody SignUpDto userDto) {
-        log.info("Registering user: {}", userDto.getUsername());
+    public ResponseEntity<UserResponseDto> registerUser(@Valid @RequestBody SignUpDto userDto) {
+        User registeredUser = authService.registerUser(userDto);
+        UserResponseDto response = UserResponseDto.builder().id(registeredUser.getId()).build();
 
-        if (authService.isUsernameTaken(userDto.getUsername())) {
-            log.warn("username {} is already taken", userDto.getUsername());
-            return new ResponseEntity<>(new MessageResponse("Error: Username is already taken"),
-                    HttpStatus.CONFLICT);
-        }
-
-        User registeredUser = authService.registerUser(new User(userDto.getUsername(),
-                userDto.getPassword(), userDto.getEmail(), userDto.getRole()));
-
-        UserResponseDto resDto = UserResponseDto.builder()
-                .id(registeredUser.getId())
-                .build();
-
-        return new ResponseEntity<>(resDto, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/password-reset-requests")
-    public ResponseEntity<String> requestReset(@RequestParam String email) {
-        log.info("Password reset requested for email: {}", email);
+    public ResponseEntity<MessageResponse> requestReset(@RequestParam String email) {
         passwordResetService.requestPasswordReset(email);
 
-        return new ResponseEntity<>("Reset link sent to email", HttpStatus.OK);
+        return ResponseEntity.ok(new MessageResponse("Reset link sent to email"));
     }
 
     @PatchMapping("/passwords")
-    public ResponseEntity<String> reset(@RequestBody @Valid ResetPasswrodDto resetPasswrodDto) {
-        log.info("Resetting password with token: {}", resetPasswrodDto.getToken());
-        passwordResetService.resetPassword(resetPasswrodDto.getToken(),
-                resetPasswrodDto.getNewPassword());
+    public ResponseEntity<MessageResponse> reset(@Valid @RequestBody ResetPasswordDto resetPasswordDto) {
+        passwordResetService.resetPassword(resetPasswordDto.getToken(), resetPasswordDto.getNewPassword());
 
-        return new ResponseEntity<>("Password reset successful", HttpStatus.OK);
+        return ResponseEntity.ok(new MessageResponse("Password reset successful"));
     }
 
 }

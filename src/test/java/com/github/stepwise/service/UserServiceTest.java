@@ -19,11 +19,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import com.github.stepwise.entity.Profile;
-import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.exception.NotFoundException;
 import com.github.stepwise.repository.StudyGroupRepository;
 import com.github.stepwise.repository.UserRepository;
+import com.github.stepwise.web.dto.ProfileDto;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -39,7 +40,6 @@ class UserServiceTest {
 
     private User student;
     private User teacher;
-    private StudyGroup studyGroup;
     private Profile profile;
 
     @BeforeEach
@@ -67,12 +67,6 @@ class UserServiceTest {
                 .tempPassword(null)
                 .profile(profile)
                 .build();
-
-        studyGroup = StudyGroup.builder()
-                .id(1L)
-                .name("Math Group")
-                .students(List.of(student, teacher))
-                .build();
     }
 
     @Test
@@ -84,210 +78,200 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("student1", result.getUsername());
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository).findById(1L);
     }
 
     @Test
     void findById_WhenUserNotExists_ShouldThrowException() {
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> userService.findById(999L));
         assertEquals("User not found with id: 999", exception.getMessage());
-        verify(userRepository, times(1)).findById(999L);
+        verify(userRepository).findById(999L);
     }
 
     @Test
-    void getAllStudents_ShouldReturnStudentsPage() {
+    void getStudents_WithoutSearch_ShouldReturnAllStudents() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<User> studentPage = new PageImpl<>(List.of(student), pageable, 1);
         when(userRepository.findByRole(UserRole.STUDENT, pageable)).thenReturn(studentPage);
 
-        Page<User> result = userService.getAllStudents(pageable);
+        Page<User> result = userService.getStudents(null, pageable);
 
-        assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals("student1", result.getContent().get(0).getUsername());
-        verify(userRepository, times(1)).findByRole(UserRole.STUDENT, pageable);
+        verify(userRepository).findByRole(UserRole.STUDENT, pageable);
+        verify(userRepository, never()).findByUsernameOrFirstNameOrLastName(any(), any(), any());
     }
 
     @Test
-    void getAllStudents_WithSearch_ShouldReturnFilteredStudents() {
+    void getStudents_WithBlankSearch_ShouldReturnAllStudents() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<User> studentPage = new PageImpl<>(List.of(student), pageable, 1);
+        when(userRepository.findByRole(UserRole.STUDENT, pageable)).thenReturn(studentPage);
+
+        Page<User> result = userService.getStudents("   ", pageable);
+
+        assertEquals(1, result.getTotalElements());
+        verify(userRepository).findByRole(UserRole.STUDENT, pageable);
+        verify(userRepository, never()).findByUsernameOrFirstNameOrLastName(any(), any(), any());
+    }
+
+    @Test
+    void getStudents_WithSearch_ShouldReturnFilteredStudents() {
         String search = "john";
         Pageable pageable = PageRequest.of(0, 10);
         Page<User> studentPage = new PageImpl<>(List.of(student), pageable, 1);
         when(userRepository.findByUsernameOrFirstNameOrLastName(search, UserRole.STUDENT, pageable))
                 .thenReturn(studentPage);
 
-        Page<User> result = userService.getAllStudents(search, pageable);
+        Page<User> result = userService.getStudents(search, pageable);
 
-        assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(userRepository, times(1))
-                .findByUsernameOrFirstNameOrLastName(search, UserRole.STUDENT, pageable);
+        verify(userRepository).findByUsernameOrFirstNameOrLastName(search, UserRole.STUDENT, pageable);
+        verify(userRepository, never()).findByRole(any(), any());
     }
 
     @Test
-    void getAllTeachers_ShouldReturnTeachersPage() {
+    void getTeachers_WithoutSearch_ShouldReturnAllTeachers() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<User> teacherPage = new PageImpl<>(List.of(teacher), pageable, 1);
         when(userRepository.findByRole(UserRole.TEACHER, pageable)).thenReturn(teacherPage);
 
-        Page<User> result = userService.getAllTeachers(pageable);
+        Page<User> result = userService.getTeachers(null, pageable);
 
-        assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals("teacher1", result.getContent().get(0).getUsername());
-        verify(userRepository, times(1)).findByRole(UserRole.TEACHER, pageable);
+        verify(userRepository).findByRole(UserRole.TEACHER, pageable);
     }
 
     @Test
-    void getAllTeachers_WithSearch_ShouldReturnFilteredTeachers() {
+    void getTeachers_WithSearch_ShouldReturnFilteredTeachers() {
         String search = "teacher";
         Pageable pageable = PageRequest.of(0, 10);
         Page<User> teacherPage = new PageImpl<>(List.of(teacher), pageable, 1);
         when(userRepository.findByUsernameOrFirstNameOrLastName(search, UserRole.TEACHER, pageable))
                 .thenReturn(teacherPage);
 
-        Page<User> result = userService.getAllTeachers(search, pageable);
+        Page<User> result = userService.getTeachers(search, pageable);
 
-        assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(userRepository, times(1))
-                .findByUsernameOrFirstNameOrLastName(search, UserRole.TEACHER, pageable);
+        verify(userRepository).findByUsernameOrFirstNameOrLastName(search, UserRole.TEACHER, pageable);
     }
 
     @Test
-    void getAllStudentsByGroupId_WhenGroupExists_ShouldReturnStudents() {
-        when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
-        when(userRepository.findAllById(anyList())).thenReturn(List.of(student, teacher));
+    void getStudentsByGroupId_WhenGroupExists_ShouldReturnStudents() {
+        when(studyGroupRepository.existsById(1L)).thenReturn(true);
+        when(userRepository.findAllByGroupId(1L)).thenReturn(List.of(student, teacher));
 
-        List<User> result = userService.getAllStudentsByGroupId(1L);
+        List<User> result = userService.getStudentsByGroupId(1L);
 
-        assertNotNull(result);
         assertEquals(2, result.size());
-        verify(studyGroupRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).findAllById(anyList());
+        verify(studyGroupRepository).existsById(1L);
+        verify(userRepository).findAllByGroupId(1L);
     }
 
     @Test
-    void getAllStudentsByGroupId_WhenGroupNotExists_ShouldThrowException() {
-        when(studyGroupRepository.findById(999L)).thenReturn(Optional.empty());
+    void getStudentsByGroupId_WhenGroupNotExists_ShouldThrowException() {
+        when(studyGroupRepository.existsById(999L)).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> userService.getAllStudentsByGroupId(999L));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> userService.getStudentsByGroupId(999L));
         assertEquals("Group not found with id: 999", exception.getMessage());
-        verify(studyGroupRepository, times(1)).findById(999L);
-        verify(userRepository, never()).findAllById(anyList());
+        verify(studyGroupRepository).existsById(999L);
+        verify(userRepository, never()).findAllByGroupId(any());
     }
 
     @Test
-    void getUsersWithTempPasswordByGroupId_ShouldReturnUsersWithTempPassword() {
-        User studentWithTempPassword = User.builder()
-                .id(3L)
-                .username("student3")
-                .role(UserRole.STUDENT)
-                .tempPassword("pass")
-                .build();
-
-        User studentWithoutTempPassword = User.builder()
-                .id(4L)
-                .username("student4")
-                .role(UserRole.STUDENT)
-                .tempPassword(null)
-                .build();
-
-        StudyGroup groupWithMixedUsers = StudyGroup.builder()
-                .id(2L)
-                .name("Science Group")
-                .students(List.of(studentWithTempPassword, studentWithoutTempPassword))
-                .build();
-
-        when(studyGroupRepository.findById(2L)).thenReturn(Optional.of(groupWithMixedUsers));
+    void getUsersWithTempPasswordByGroupId_WhenGroupExists_ShouldReturnUsersWithTempPassword() {
+        when(studyGroupRepository.existsById(2L)).thenReturn(true);
+        when(userRepository.findAllByGroupIdAndTempPasswordIsNotNull(2L)).thenReturn(List.of(student));
 
         List<User> result = userService.getUsersWithTempPasswordByGroupId(2L);
 
-        assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("student3", result.get(0).getUsername());
-        assertTrue(result.get(0).getTempPassword() != null);
-        verify(studyGroupRepository, times(1)).findById(2L);
+        assertEquals("student1", result.get(0).getUsername());
+        verify(studyGroupRepository).existsById(2L);
+        verify(userRepository).findAllByGroupIdAndTempPasswordIsNotNull(2L);
     }
 
     @Test
     void getUsersWithTempPasswordByGroupId_WhenGroupNotExists_ShouldThrowException() {
-        when(studyGroupRepository.findById(999L)).thenReturn(Optional.empty());
+        when(studyGroupRepository.existsById(999L)).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> userService.getUsersWithTempPasswordByGroupId(999L));
         assertEquals("Group not found with id: 999", exception.getMessage());
-        verify(studyGroupRepository, times(1)).findById(999L);
+        verify(studyGroupRepository).existsById(999L);
+        verify(userRepository, never()).findAllByGroupIdAndTempPasswordIsNotNull(any());
     }
 
     @Test
     void updateProfile_WhenUserExists_ShouldUpdateProfile() {
-        String newFirstName = "Jane";
-        String newLastName = "Smith";
-        String newPhoneNumber = "987-654-3210";
-        String newAddress = "456 Oak Ave";
+        ProfileDto dto = ProfileDto.builder()
+                .firstName("Jane")
+                .lastName("Smith")
+                .phoneNumber("987-654-3210")
+                .address("456 Oak Ave")
+                .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(student));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User result = userService.updateProfile(1L, newFirstName, newLastName, null, newPhoneNumber, newAddress);
+        User result = userService.updateProfile(1L, dto);
 
-        assertNotNull(result);
         Profile updatedProfile = result.getProfile();
-        assertEquals(newFirstName, updatedProfile.getFirstName());
-        assertEquals(newLastName, updatedProfile.getLastName());
+        assertEquals("Jane", updatedProfile.getFirstName());
+        assertEquals("Smith", updatedProfile.getLastName());
         assertEquals("Michael", updatedProfile.getMiddleName());
-        assertEquals(newPhoneNumber, updatedProfile.getPhoneNumber());
-        assertEquals(newAddress, updatedProfile.getAddress());
+        assertEquals("987-654-3210", updatedProfile.getPhoneNumber());
+        assertEquals("456 Oak Ave", updatedProfile.getAddress());
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).save(student);
+        verify(userRepository).findById(1L);
+        verify(userRepository).save(student);
     }
 
     @Test
     void updateProfile_WhenUserNotExists_ShouldThrowException() {
+        ProfileDto dto = ProfileDto.builder().firstName("Jane").lastName("Smith").build();
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> userService.updateProfile(999L, "Jane", "Smith", null, null, null));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> userService.updateProfile(999L, dto));
         assertEquals("User not found with id: 999", exception.getMessage());
-        verify(userRepository, times(1)).findById(999L);
+        verify(userRepository).findById(999L);
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void updateProfile_WithPartialData_ShouldUpdateOnlyProvidedFields() {
-        String newFirstName = "Jane";
+        ProfileDto dto = ProfileDto.builder().firstName("Jane").build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(student));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User result = userService.updateProfile(1L, newFirstName, null, null, null, null);
+        User result = userService.updateProfile(1L, dto);
 
-        assertNotNull(result);
         Profile updatedProfile = result.getProfile();
-        assertEquals(newFirstName, updatedProfile.getFirstName());
+        assertEquals("Jane", updatedProfile.getFirstName());
         assertEquals("Doe", updatedProfile.getLastName());
         assertEquals("Michael", updatedProfile.getMiddleName());
         assertEquals("123-456-7890", updatedProfile.getPhoneNumber());
         assertEquals("123 Main St", updatedProfile.getAddress());
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).save(student);
+        verify(userRepository).save(student);
     }
 
     @Test
-    void updateProfile_WithNullValues_ShouldNotUpdateFields() {
+    void updateProfile_WithAllNullFields_ShouldNotChangeAnything() {
+        ProfileDto dto = ProfileDto.builder().build();
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(student));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User result = userService.updateProfile(1L, null, null, null, null, null);
+        User result = userService.updateProfile(1L, dto);
 
-        assertNotNull(result);
         Profile updatedProfile = result.getProfile();
         assertEquals("John", updatedProfile.getFirstName());
         assertEquals("Doe", updatedProfile.getLastName());
@@ -295,7 +279,33 @@ class UserServiceTest {
         assertEquals("123-456-7890", updatedProfile.getPhoneNumber());
         assertEquals("123 Main St", updatedProfile.getAddress());
 
-        verify(userRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).save(student);
+        verify(userRepository).save(student);
+    }
+
+    @Test
+    void resolveProfileTargetId_ForNonAdmin_ShouldReturnRequesterId() {
+        ProfileDto dto = ProfileDto.builder().id(999L).build();
+
+        Long result = userService.resolveProfileTargetId(dto, 1L, UserRole.STUDENT);
+
+        assertEquals(1L, result);
+    }
+
+    @Test
+    void resolveProfileTargetId_ForAdminWithId_ShouldReturnDtoId() {
+        ProfileDto dto = ProfileDto.builder().id(42L).build();
+
+        Long result = userService.resolveProfileTargetId(dto, 1L, UserRole.ADMIN);
+
+        assertEquals(42L, result);
+    }
+
+    @Test
+    void resolveProfileTargetId_ForAdminWithoutId_ShouldThrowException() {
+        ProfileDto dto = ProfileDto.builder().build();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userService.resolveProfileTargetId(dto, 1L, UserRole.ADMIN));
+        assertEquals("Profile ID must not be null for admin", exception.getMessage());
     }
 }

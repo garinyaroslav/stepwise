@@ -1,4 +1,4 @@
-package com.github.stepwise.exceptionHadlers;
+package com.github.stepwise.exception;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,10 +43,16 @@ public class ExceptionHandlerAdvice {
                 HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<MessageResponse> handleMaxSizeException(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new MessageResponse(ex.getMessage()));
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<String> handleMaxSizeException(MaxUploadSizeExceededException exc) {
+    public ResponseEntity<MessageResponse> handleMaxSizeException(MaxUploadSizeExceededException exc) {
         return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
-                .body("File size exceeds the maximum limit of 2MB!");
+                .body(new MessageResponse("File size exceeds the maximum limit of 2MB!"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

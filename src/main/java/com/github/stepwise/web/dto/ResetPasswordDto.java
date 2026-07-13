@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResetPasswrodDto {
+public class ResetPasswordDto {
 
     @NotNull(message = "token is required")
     @NotBlank(message = "token must not be blank")
