@@ -1,8 +1,17 @@
 package com.github.stepwise.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,10 +28,12 @@ import com.github.stepwise.entity.Project;
 import com.github.stepwise.entity.StudyGroup;
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.exception.NotFoundException;
 import com.github.stepwise.repository.AcademicWorkRepository;
 import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.StudyGroupRepository;
 import com.github.stepwise.repository.UserRepository;
+import com.github.stepwise.web.dto.GroupResponseDto;
 
 @ExtendWith(MockitoExtension.class)
 class StudyGroupServiceTest {
@@ -68,30 +79,42 @@ class StudyGroupServiceTest {
     }
 
     @Test
-    void findAll_WithoutSearch_ShouldReturnAllGroups() {
-        List<StudyGroup> expectedGroups = List.of(studyGroup);
-        when(studyGroupRepository.findAll()).thenReturn(expectedGroups);
+    void findAllSummaries_WithoutSearch_ShouldReturnAllGroupSummaries() {
+        List<GroupResponseDto> expected = List.of(new GroupResponseDto(1L, "Math Group", 2));
+        when(studyGroupRepository.findAllSummaries()).thenReturn(expected);
 
-        List<StudyGroup> result = studyGroupService.findAll(null);
+        List<GroupResponseDto> result = studyGroupService.findAllSummaries(null);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(studyGroupRepository, times(1)).findAll();
-        verify(studyGroupRepository, never()).findByNameContainingIgnoreCase(anyString());
+        assertEquals(2, result.get(0).getStudentsCount());
+        verify(studyGroupRepository, times(1)).findAllSummaries();
+        verify(studyGroupRepository, never()).findSummariesByNameContaining(anyString());
     }
 
     @Test
-    void findAll_WithSearch_ShouldReturnFilteredGroups() {
-        String search = "math";
-        List<StudyGroup> expectedGroups = List.of(studyGroup);
-        when(studyGroupRepository.findByNameContainingIgnoreCase(search)).thenReturn(expectedGroups);
+    void findAllSummaries_WithBlankSearch_ShouldReturnAllGroupSummaries() {
+        List<GroupResponseDto> expected = List.of(new GroupResponseDto(1L, "Math Group", 2));
+        when(studyGroupRepository.findAllSummaries()).thenReturn(expected);
 
-        List<StudyGroup> result = studyGroupService.findAll(search);
+        List<GroupResponseDto> result = studyGroupService.findAllSummaries("   ");
 
-        assertNotNull(result);
         assertEquals(1, result.size());
-        verify(studyGroupRepository, times(1)).findByNameContainingIgnoreCase(search);
-        verify(studyGroupRepository, never()).findAll();
+        verify(studyGroupRepository, times(1)).findAllSummaries();
+        verify(studyGroupRepository, never()).findSummariesByNameContaining(anyString());
+    }
+
+    @Test
+    void findAllSummaries_WithSearch_ShouldReturnFilteredGroupSummaries() {
+        String search = "math";
+        List<GroupResponseDto> expected = List.of(new GroupResponseDto(1L, "Math Group", 2));
+        when(studyGroupRepository.findSummariesByNameContaining(search)).thenReturn(expected);
+
+        List<GroupResponseDto> result = studyGroupService.findAllSummaries(search);
+
+        assertEquals(1, result.size());
+        verify(studyGroupRepository, times(1)).findSummariesByNameContaining(search);
+        verify(studyGroupRepository, never()).findAllSummaries();
     }
 
     @Test
@@ -110,10 +133,10 @@ class StudyGroupServiceTest {
     void findById_WhenGroupNotExists_ShouldThrowException() {
         when(studyGroupRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> studyGroupService.findById(999L));
 
-        assertEquals("Group with id 999 not found", exception.getMessage());
+        assertEquals("Group not found with id: 999", exception.getMessage());
         verify(studyGroupRepository, times(1)).findById(999L);
     }
 
@@ -155,8 +178,6 @@ class StudyGroupServiceTest {
                 .students(newStudents)
                 .build();
 
-        List<User> removedUsers = List.of(student2);
-
         when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
         when(userRepository.findByIdInAndRole(newStudentIds, UserRole.STUDENT)).thenReturn(newStudents);
         when(academicWorkRepository.findByGroupId(1L)).thenReturn(List.of());
@@ -183,10 +204,10 @@ class StudyGroupServiceTest {
 
         when(studyGroupRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> studyGroupService.update(999L, newStudentIds));
 
-        assertEquals("Group with id 999 not found", exception.getMessage());
+        assertEquals("Group not found with id: 999", exception.getMessage());
         verify(studyGroupRepository, times(1)).findById(999L);
         verify(userRepository, never()).findByIdInAndRole(anyList(), any());
         verify(academicWorkRepository, never()).findByGroupId(anyLong());
@@ -231,7 +252,6 @@ class StudyGroupServiceTest {
     void update_WhenRemovingStudentsWithProjects_ShouldDeleteProjects() {
         List<Long> newStudentIds = List.of(1L);
         List<User> newStudents = List.of(student1);
-        List<User> removedUsers = List.of(student2);
 
         AcademicWork academicWork = AcademicWork.builder()
                 .id(1L)
@@ -271,4 +291,47 @@ class StudyGroupServiceTest {
         verify(projectRepository, never()).saveAll(any());
         verify(studyGroupRepository, times(1)).save(studyGroup);
     }
+
+    @Test
+    void update_WhenAddingStudentsWithExistingWorks_ShouldCreateProjects() {
+        List<Long> newStudentIds = List.of(1L, 2L, 3L);
+
+        User student3 = User.builder()
+                .id(3L)
+                .username("student3")
+                .role(UserRole.STUDENT)
+                .build();
+        List<User> newStudents = List.of(student1, student2, student3);
+
+        var workTemplate = com.github.stepwise.entity.WorkTemplate.builder()
+                .workTitle("Тема 1")
+                .build();
+        AcademicWork academicWork = AcademicWork.builder()
+                .id(1L)
+                .workTemplate(workTemplate)
+                .build();
+        List<AcademicWork> works = List.of(academicWork);
+
+        StudyGroup updatedGroup = StudyGroup.builder()
+                .id(1L)
+                .name("Math Group")
+                .students(newStudents)
+                .build();
+
+        when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
+        when(userRepository.findByIdInAndRole(newStudentIds, UserRole.STUDENT)).thenReturn(newStudents);
+        when(academicWorkRepository.findByGroupId(1L)).thenReturn(works);
+        when(studyGroupRepository.save(any(StudyGroup.class))).thenReturn(updatedGroup);
+
+        StudyGroup result = studyGroupService.update(1L, newStudentIds);
+
+        assertNotNull(result);
+        verify(projectRepository, times(1)).saveAll(argThat(projects -> {
+            List<Project> list = (List<Project>) projects;
+            return list.size() == 1 && list.get(0).getStudent().getId().equals(3L);
+        }));
+        verify(projectRepository, never()).deleteAll(any());
+        verify(studyGroupRepository, times(1)).save(studyGroup);
+    }
+
 }

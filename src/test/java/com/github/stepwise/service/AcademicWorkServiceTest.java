@@ -1,8 +1,16 @@
 package com.github.stepwise.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import com.github.stepwise.entity.AcademicWork;
 import com.github.stepwise.entity.Project;
@@ -23,6 +32,7 @@ import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.entity.WorkTemplate;
 import com.github.stepwise.entity.WorkTemplateChapter;
+import com.github.stepwise.exception.NotFoundException;
 import com.github.stepwise.repository.AcademicWorkRepository;
 import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.StudyGroupRepository;
@@ -143,10 +153,10 @@ class AcademicWorkServiceTest {
     void create_WhenGroupNotFound_ShouldThrowException() {
         when(studyGroupRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> academicWorkService.create(1L, 999L, deadlineDtos));
 
-        assertEquals("Group not found: 999", exception.getMessage());
+        assertEquals("Group not found with id: 999", exception.getMessage());
         verify(studyGroupRepository, times(1)).findById(999L);
         verify(academicWorkRepository, never()).save(any(AcademicWork.class));
         verify(projectRepository, never()).saveAll(anyList());
@@ -157,10 +167,10 @@ class AcademicWorkServiceTest {
         when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
         when(workTemplateRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> academicWorkService.create(999L, 1L, deadlineDtos));
 
-        assertEquals("Template not found: 999", exception.getMessage());
+        assertEquals("Work template not found with id: 999", exception.getMessage());
         verify(studyGroupRepository, times(1)).findById(1L);
         verify(workTemplateRepository, times(1)).findById(999L);
         verify(academicWorkRepository, never()).save(any(AcademicWork.class));
@@ -202,6 +212,23 @@ class AcademicWorkServiceTest {
     }
 
     @Test
+    void create_WithEmptyStudentList_ShouldNotCreateProjects() {
+        StudyGroup emptyGroup = StudyGroup.builder()
+                .id(3L)
+                .name("Empty Group")
+                .students(new ArrayList<>())
+                .build();
+
+        when(studyGroupRepository.findById(3L)).thenReturn(Optional.of(emptyGroup));
+        when(workTemplateRepository.findById(1L)).thenReturn(Optional.of(workTemplate));
+        when(academicWorkRepository.save(any(AcademicWork.class))).thenReturn(academicWork);
+
+        academicWorkService.create(1L, 3L, deadlineDtos);
+
+        verify(projectRepository, times(1)).saveAll(List.of());
+    }
+
+    @Test
     void getByGroupId_ShouldReturnAcademicWorks() {
         when(academicWorkRepository.findByGroupId(1L)).thenReturn(List.of(academicWork));
 
@@ -237,7 +264,7 @@ class AcademicWorkServiceTest {
     void getById_WhenWorkNotExists_ShouldThrowException() {
         when(academicWorkRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> academicWorkService.getById(999L));
 
         assertEquals("Work not found with id: 999", exception.getMessage());
@@ -245,20 +272,21 @@ class AcademicWorkServiceTest {
 
     @Test
     void getByStudentId_WhenStudentExists_ShouldReturnAcademicWorks() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(student1));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(academicWorkRepository.findByStudentId(1L)).thenReturn(List.of(academicWork));
 
         List<AcademicWork> result = academicWorkService.getByStudentId(1L);
 
         assertNotNull(result);
         assertEquals(1, result.size());
+        verify(userRepository, times(1)).existsById(1L);
     }
 
     @Test
     void getByStudentId_WhenStudentNotExists_ShouldThrowException() {
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.existsById(999L)).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> academicWorkService.getByStudentId(999L));
 
         assertEquals("Student not found with id: 999", exception.getMessage());
@@ -267,30 +295,13 @@ class AcademicWorkServiceTest {
 
     @Test
     void getByStudentId_WhenNoWorksFound_ShouldReturnEmptyList() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(student1));
+        when(userRepository.existsById(1L)).thenReturn(true);
         when(academicWorkRepository.findByStudentId(1L)).thenReturn(List.of());
 
         List<AcademicWork> result = academicWorkService.getByStudentId(1L);
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void create_WithEmptyStudentList_ShouldNotCreateProjects() {
-        StudyGroup emptyGroup = StudyGroup.builder()
-                .id(3L)
-                .name("Empty Group")
-                .students(new ArrayList<>())
-                .build();
-
-        when(studyGroupRepository.findById(3L)).thenReturn(Optional.of(emptyGroup));
-        when(workTemplateRepository.findById(1L)).thenReturn(Optional.of(workTemplate));
-        when(academicWorkRepository.save(any(AcademicWork.class))).thenReturn(academicWork);
-
-        academicWorkService.create(1L, 3L, deadlineDtos);
-
-        verify(projectRepository, times(1)).saveAll(List.of());
     }
 
     @Test
@@ -324,4 +335,65 @@ class AcademicWorkServiceTest {
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    void getWorksForRequester_StudentRequestingOwnWorks_ShouldReturnWorks() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(academicWorkRepository.findByStudentId(1L)).thenReturn(List.of(academicWork));
+
+        List<AcademicWork> result = academicWorkService.getWorksForRequester(null, 1L, UserRole.STUDENT);
+
+        assertEquals(1, result.size());
+        verify(academicWorkRepository).findByStudentId(1L);
+    }
+
+    @Test
+    void getWorksForRequester_StudentRequestingOwnWorksExplicitId_ShouldReturnWorks() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(academicWorkRepository.findByStudentId(1L)).thenReturn(List.of(academicWork));
+
+        List<AcademicWork> result = academicWorkService.getWorksForRequester("1", 1L, UserRole.STUDENT);
+
+        assertEquals(1, result.size());
+        verify(academicWorkRepository).findByStudentId(1L);
+    }
+
+    @Test
+    void getWorksForRequester_StudentRequestingOtherStudentWorks_ShouldThrowAccessDenied() {
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
+                () -> academicWorkService.getWorksForRequester("2", 1L, UserRole.STUDENT));
+
+        assertEquals("Students can only view their own works", exception.getMessage());
+        verify(academicWorkRepository, never()).findByStudentId(anyLong());
+    }
+
+    @Test
+    void getWorksForRequester_TeacherWithExplicitStudentId_ShouldReturnWorks() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(academicWorkRepository.findByStudentId(1L)).thenReturn(List.of(academicWork));
+
+        List<AcademicWork> result = academicWorkService.getWorksForRequester("1", 3L, UserRole.TEACHER);
+
+        assertEquals(1, result.size());
+        verify(academicWorkRepository).findByStudentId(1L);
+    }
+
+    @Test
+    void getWorksForRequester_TeacherWithoutStudentId_ShouldThrowException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> academicWorkService.getWorksForRequester(null, 3L, UserRole.TEACHER));
+
+        assertEquals("Student ID must be provided", exception.getMessage());
+        verify(academicWorkRepository, never()).findByStudentId(anyLong());
+    }
+
+    @Test
+    void getWorksForRequester_AdminWithoutStudentId_ShouldThrowException() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> academicWorkService.getWorksForRequester(null, 5L, UserRole.ADMIN));
+
+        assertEquals("Student ID must be provided", exception.getMessage());
+        verify(academicWorkRepository, never()).findByStudentId(anyLong());
+    }
+
 }

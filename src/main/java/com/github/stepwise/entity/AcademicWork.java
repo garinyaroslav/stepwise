@@ -3,6 +3,7 @@ package com.github.stepwise.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
 
 import com.github.stepwise.audit.Auditable;
@@ -54,6 +55,7 @@ public class AcademicWork extends Auditable {
 
     @Builder.Default
     @OneToMany(mappedBy = "academicWork", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @BatchSize(size = 50)
     private List<AcademicWorkDeadline> deadlines = new ArrayList<>();
 
     @Builder.Default

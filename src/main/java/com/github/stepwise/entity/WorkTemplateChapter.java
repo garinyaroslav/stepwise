@@ -49,4 +49,5 @@ public class WorkTemplateChapter extends Auditable {
     @JoinColumn(name = "work_template_id", nullable = false)
     @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private WorkTemplate workTemplate;
+
 }

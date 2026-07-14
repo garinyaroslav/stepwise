@@ -61,6 +61,11 @@ public class ExceptionHandlerAdvice {
                 HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<MessageResponse> handleConflict(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new MessageResponse(ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGlobalException(Exception ex) {
         return new ResponseEntity<>(new MessageResponse("Unexpected error: " + ex.getMessage()),

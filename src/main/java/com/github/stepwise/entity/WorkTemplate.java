@@ -3,6 +3,7 @@ package com.github.stepwise.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
 import org.hibernate.envers.RelationTargetAuditMode;
@@ -22,6 +23,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -60,11 +62,6 @@ public class WorkTemplate extends Auditable {
     @Column(nullable = false)
     private Integer countOfChapters;
 
-    // @CreatedDate
-    // @Column(name = "created_at", nullable = false, updatable = false,
-    // columnDefinition = "timestamp(6) default now()")
-    // private LocalDateTime createdAtTime;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProjectType type;
@@ -81,6 +78,8 @@ public class WorkTemplate extends Auditable {
 
     @Builder.Default
     @OneToMany(mappedBy = "workTemplate", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @BatchSize(size = 50)
     @NotAudited
     private List<WorkTemplateChapter> workTemplateChapters = new ArrayList<>();
+
 }

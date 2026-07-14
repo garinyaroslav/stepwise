@@ -7,10 +7,12 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.WorkTemplate;
 import com.github.stepwise.entity.WorkTemplateChapter;
+import com.github.stepwise.exception.NotFoundException;
 import com.github.stepwise.repository.UserRepository;
 import com.github.stepwise.repository.WorkTemplateRepository;
 import com.github.stepwise.web.dto.CreateWorkTemplateDto;
@@ -25,29 +27,30 @@ import lombok.extern.slf4j.Slf4j;
 public class WorkTemplateService {
 
     private final WorkTemplateRepository workTemplateRepository;
-
     private final UserRepository userRepository;
 
     public Page<WorkTemplate> findAllWithSearch(Pageable pageable, String search) {
         log.info("Fetching work templates with search: {}", search);
-
-        if (search == null || search.isBlank())
-            return workTemplateRepository.findAll(pageable);
-
-        return workTemplateRepository.findAllWithSearch(pageable, search);
+        return StringUtils.hasText(search)
+                ? workTemplateRepository.findAllWithSearch(pageable, search)
+                : workTemplateRepository.findAll(pageable);
     }
 
     public Optional<WorkTemplate> findById(Long id) {
         log.info("Fetching work template by id: {}", id);
-
         return workTemplateRepository.findById(id);
+    }
+
+    public WorkTemplate getByIdOrThrow(Long id) {
+        return findById(id)
+                .orElseThrow(() -> new NotFoundException("Work template not found with id: " + id));
     }
 
     public WorkTemplate create(CreateWorkTemplateDto dto) {
         log.info("Creating work template with title: {}", dto.getTemplateTitle());
 
         User teacher = userRepository.findById(dto.getTeacherId())
-                .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + dto.getTeacherId()));
+                .orElseThrow(() -> new NotFoundException("Teacher not found with id: " + dto.getTeacherId()));
 
         WorkTemplate workTemplate = WorkTemplate.builder()
                 .templateTitle(dto.getTemplateTitle())
@@ -62,17 +65,15 @@ public class WorkTemplateService {
         List<WorkTemplateChapter> chapters = dto.getChapters().stream()
                 .map(chapterDto -> chapterDto.toEntity(workTemplate))
                 .collect(Collectors.toList());
-
         workTemplate.setWorkTemplateChapters(chapters);
 
         return workTemplateRepository.save(workTemplate);
     }
 
     public WorkTemplate update(Long id, UpdateWorkTemplateDto dto) {
-        log.info("Updating Template with id: {}", id);
+        log.info("Updating template with id: {}", id);
 
-        WorkTemplate t = workTemplateRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Work template not found with id: " + id));
+        WorkTemplate t = getByIdOrThrow(id);
 
         if (dto.getTemplateTitle() != null)
             t.setTemplateTitle(dto.getTemplateTitle());
@@ -84,6 +85,7 @@ public class WorkTemplateService {
             t.setWorkDescription(dto.getWorkDescription());
         if (dto.getType() != null)
             t.setType(dto.getType());
+
         if (dto.getChapters() != null && !dto.getChapters().isEmpty()) {
             List<WorkTemplateChapter> chapters = dto.getChapters().stream()
                     .map(chapterDto -> chapterDto.toEntity(t))
@@ -97,7 +99,6 @@ public class WorkTemplateService {
 
     public void delete(Long id) {
         log.info("Deleting work template with id: {}", id);
-
         workTemplateRepository.deleteById(id);
     }
 

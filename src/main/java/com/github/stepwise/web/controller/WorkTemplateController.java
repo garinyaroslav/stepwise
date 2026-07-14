@@ -28,12 +28,10 @@ import com.github.stepwise.web.dto.UpdateWorkTemplateDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/template")
 @RequiredArgsConstructor
-@Slf4j
 @Validated
 public class WorkTemplateController {
 
@@ -43,7 +41,6 @@ public class WorkTemplateController {
     @PreAuthorize("hasAnyRole('ROLE_TEACHER')")
     public ResponseEntity<Void> createWorkTemplate(@Valid @RequestBody CreateWorkTemplateDto reqDto) {
         workTemplateService.create(reqDto);
-
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -51,37 +48,25 @@ public class WorkTemplateController {
     @PreAuthorize("hasAnyRole('ROLE_TEACHER')")
     public ResponseEntity<Void> deleteWorkTemplate(@Positive @PathVariable Long id) {
         workTemplateService.delete(id);
-
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ROLE_TEACHER')")
-    public ResponseEntity<PageResponse<TemplateResDto>> getAllTemplates(
+    public PageResponse<TemplateResDto> getAllTemplates(
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String search) {
-        log.info("Fetching all templates, pageNumber: {}, pageSize: {}, search: {}", pageNumber, pageSize, search);
-        PageRequest pageRequest = PageRequest.of(pageNumber, pageSize);
-
-        Page<WorkTemplate> templates = workTemplateService.findAllWithSearch(pageRequest, search);
-
-        List<TemplateResDto> content = templates.stream()
-                .map(TemplateResDto::fromEntity)
-                .toList();
-
-        return ResponseEntity.ok(new PageResponse<>(content, templates.getTotalPages()));
+        Page<WorkTemplate> templates = workTemplateService.findAllWithSearch(PageRequest.of(pageNumber, pageSize),
+                search);
+        List<TemplateResDto> content = templates.stream().map(TemplateResDto::fromEntity).toList();
+        return new PageResponse<>(content, templates.getTotalPages());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_TEACHER')")
     public TemplateResDto getTemplate(@Positive @PathVariable Long id) {
-        log.info("Fetching template by id: {}", id);
-
-        WorkTemplate wt = workTemplateService.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Work template not found with id: " + id));
-
-        return TemplateResDto.fromEntity(wt);
+        return TemplateResDto.fromEntity(workTemplateService.getByIdOrThrow(id));
     }
 
     @PatchMapping("/{id}")
@@ -89,7 +74,6 @@ public class WorkTemplateController {
     public ResponseEntity<TemplateResDto> updateWorkTemplate(@Positive @PathVariable Long id,
             @Valid @RequestBody UpdateWorkTemplateDto reqDto) {
         WorkTemplate template = workTemplateService.update(id, reqDto);
-
         return ResponseEntity.ok(TemplateResDto.fromEntity(template));
     }
 

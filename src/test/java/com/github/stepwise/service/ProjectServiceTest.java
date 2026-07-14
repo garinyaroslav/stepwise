@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -37,6 +36,7 @@ import com.github.stepwise.entity.User;
 import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.entity.WorkTemplate;
 import com.github.stepwise.entity.WorkTemplateChapter;
+import com.github.stepwise.exception.NotFoundException;
 import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.UserRepository;
 
@@ -45,13 +45,10 @@ class ProjectServiceTest {
 
     @Mock
     private ProjectRepository projectRepository;
-
     @Mock
     private UserRepository userRepository;
-
     @Mock
     private JavaMailSender mailSender;
-
     @Mock
     private MailConfigurationProperties mailConfig;
 
@@ -142,12 +139,13 @@ class ProjectServiceTest {
         assertNotNull(result);
         assertEquals("Updated Title", project.getTitle());
         assertEquals("Updated Description", project.getDescription());
-        verify(projectRepository, times(1)).findById(1L);
-        verify(projectRepository, times(1)).save(project);
+
+        verify(projectRepository).findById(1L);
+        verify(projectRepository).save(project);
     }
 
     @Test
-    void updateProject_WhenProjectNotExists_ShouldThrowException() {
+    void updateProject_WhenProjectNotExists_ShouldThrowNotFoundException() {
         Project newProjectData = Project.builder()
                 .id(999L)
                 .title("Updated Title")
@@ -156,7 +154,7 @@ class ProjectServiceTest {
 
         when(projectRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> projectService.updateProject(newProjectData));
 
         assertEquals("Project not found with id: 999", exception.getMessage());
@@ -174,13 +172,13 @@ class ProjectServiceTest {
     }
 
     @Test
-    void getByProjectId_WhenProjectNotExists_ShouldThrowException() {
+    void getByProjectId_WhenProjectNotExists_ShouldThrowNotFoundException() {
         when(projectRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> projectService.getByProjectId(999L));
 
-        assertEquals("Project not found project id: 999", exception.getMessage());
+        assertEquals("Project not found with id: 999", exception.getMessage());
     }
 
     @Test
@@ -228,11 +226,12 @@ class ProjectServiceTest {
         assertNotNull(result);
         assertEquals(ProjectStatus.APPROVED_FOR_DEFENSE, result.getStatus());
         assertNotNull(result.getApprovedForDefenseAt());
+
         verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
     }
 
     @Test
-    void approve_WhenNotAllItemsApproved_ShouldThrowException() {
+    void approve_WhenNotAllItemsApproved_ShouldThrowIllegalArgumentException() {
         Project testProject = Project.builder()
                 .id(1L)
                 .academicWork(academicWork)
@@ -240,14 +239,15 @@ class ProjectServiceTest {
                 .items(new ArrayList<>())
                 .build();
 
-        ExplanatoryNoteItem approvedItem = ExplanatoryNoteItem.builder()
-                .id(1L).status(ItemStatus.APPROVED).orderNumber(0)
-                .project(testProject).history(new ArrayList<>()).build();
-        ExplanatoryNoteItem pendingItem = ExplanatoryNoteItem.builder()
-                .id(2L).status(ItemStatus.SUBMITTED).orderNumber(1)
-                .project(testProject).history(new ArrayList<>()).build();
-
-        testProject.setItems(List.of(approvedItem, pendingItem));
+        testProject.setItems(List.of(
+                buildApprovedItem(1L, 0, testProject),
+                ExplanatoryNoteItem.builder()
+                        .id(2L)
+                        .status(ItemStatus.SUBMITTED)
+                        .orderNumber(1)
+                        .project(testProject)
+                        .history(new ArrayList<>())
+                        .build()));
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
 
@@ -260,10 +260,10 @@ class ProjectServiceTest {
     }
 
     @Test
-    void approve_WhenProjectNotExists_ShouldThrowException() {
+    void approve_WhenProjectNotExists_ShouldThrowNotFoundException() {
         when(projectRepository.findById(999L)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> projectService.approve(999L));
 
         assertEquals("Project not found with id: 999", exception.getMessage());
@@ -296,9 +296,13 @@ class ProjectServiceTest {
     }
 
     @Test
-    void approve_WhenNoItems_ShouldThrowException() {
+    void approve_WhenNoItems_ShouldThrowIllegalArgumentException() {
         Project testProject = Project.builder()
-                .id(1L).academicWork(academicWork).student(student).items(new ArrayList<>()).build();
+                .id(1L)
+                .academicWork(academicWork)
+                .student(student)
+                .items(new ArrayList<>())
+                .build();
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
 
@@ -307,21 +311,25 @@ class ProjectServiceTest {
     }
 
     @Test
-    void approve_WhenWorkTemplateHasNoChapters_ShouldThrowException() {
+    void approve_WhenWorkTemplateHasNoChapters_ShouldThrowIllegalArgumentException() {
         WorkTemplate emptyTemplate = WorkTemplate.builder()
-                .id(2L).templateTitle("Empty Template")
-                .workTemplateChapters(new ArrayList<>()).build();
+                .id(2L)
+                .templateTitle("Empty Template")
+                .workTemplateChapters(new ArrayList<>())
+                .build();
 
         AcademicWork work = AcademicWork.builder()
-                .id(2L).group(studyGroup).workTemplate(emptyTemplate).build();
+                .id(2L)
+                .group(studyGroup)
+                .workTemplate(emptyTemplate)
+                .build();
 
         Project testProject = Project.builder()
-                .id(2L).academicWork(work).student(student).items(new ArrayList<>()).build();
-
-        ExplanatoryNoteItem approvedItem = ExplanatoryNoteItem.builder()
-                .id(3L).status(ItemStatus.APPROVED).orderNumber(0)
-                .project(testProject).history(new ArrayList<>()).build();
-        testProject.setItems(List.of(approvedItem));
+                .id(2L)
+                .academicWork(work)
+                .student(student)
+                .items(List.of(buildApprovedItem(3L, 0, null)))
+                .build();
 
         when(projectRepository.findById(2L)).thenReturn(Optional.of(testProject));
 
@@ -352,4 +360,5 @@ class ProjectServiceTest {
         when(projectRepository.existsByIdAndTeacherId(1L, 999L)).thenReturn(false);
         assertFalse(projectService.isProjectBelongsToTeacher(1L, 999L));
     }
+
 }

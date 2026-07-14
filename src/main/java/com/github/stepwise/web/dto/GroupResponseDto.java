@@ -1,4 +1,3 @@
-
 package com.github.stepwise.web.dto;
 
 import lombok.AllArgsConstructor;
