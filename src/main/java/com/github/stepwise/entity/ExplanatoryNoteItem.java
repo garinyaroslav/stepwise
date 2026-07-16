@@ -3,6 +3,7 @@ package com.github.stepwise.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
 import org.hibernate.envers.RelationTargetAuditMode;
@@ -55,6 +56,7 @@ public class ExplanatoryNoteItem extends Auditable {
 
     @Builder.Default
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @BatchSize(size = 50)
     @NotAudited
     private List<ItemHistory> history = new ArrayList<>();
 

@@ -12,7 +12,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.github.stepwise.entity.UserRole;
 import com.github.stepwise.security.AppUserDetails;
 import com.github.stepwise.service.ExplanatoryNoteItemService;
 import com.github.stepwise.service.GigaChatService;
@@ -31,11 +29,9 @@ import com.github.stepwise.web.dto.TeacherCommentDto;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/explanatory-note-item")
-@Slf4j
 @RequiredArgsConstructor
 public class ExplanatoryNoteItemController {
 
@@ -46,89 +42,48 @@ public class ExplanatoryNoteItemController {
     @PostMapping(path = "/draft", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public ResponseEntity<Void> createExplanatoryNoteItem(@RequestPart("projectId") String projectId,
-            @RequestPart("file") MultipartFile file, @AuthenticationPrincipal UserDetails userDetails)
-            throws Exception {
-        Long currentUserId = ((AppUserDetails) userDetails).getId();
-        log.info("Creating explanatory note item with file: {}, userId: {}, porjectId: {}",
-                file.getOriginalFilename(), currentUserId, projectId);
-
-        explanatoryNoteItemService.draftItem(currentUserId, Long.valueOf(projectId), file);
-
-        return new ResponseEntity<>(HttpStatus.CREATED);
+            @RequestPart("file") MultipartFile file,
+            @AuthenticationPrincipal AppUserDetails principal) throws Exception {
+        explanatoryNoteItemService.draftItem(principal.getId(), Long.valueOf(projectId), file);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/{id}/submition")
     @PreAuthorize("hasRole('ROLE_STUDENT')")
     public ResponseEntity<Void> submitExplanatoryNoteItem(@PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
-        Long currentStudentId = ((AppUserDetails) userDetails).getId();
-
-        log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentStudentId);
-
-        if (!explanatoryNoteItemService.isItemBelongsToStudent(id, currentStudentId)) {
-            log.error("Unauthorized access attempt by userId: {}, itemId: {}", currentStudentId, id);
-            throw new IllegalArgumentException("Unauthorized access to item");
-        }
-
-        explanatoryNoteItemService.submitItem(id, currentStudentId);
-
-        return new ResponseEntity<>(HttpStatus.OK);
+            @AuthenticationPrincipal AppUserDetails principal) {
+        explanatoryNoteItemService.submitItem(id, principal.getId());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/approval")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<Void> approveExplanatoryNoteItem(@PathVariable Long id,
             @RequestBody TeacherCommentDto teacherCommentDto,
-            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
-        Long currentTeacherId = ((AppUserDetails) userDetails).getId();
-
-        log.info("Submitting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
-
-        if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
-            log.error("Cannot approve item with id: {}, by teacher with id: {}", id, currentTeacherId);
-            throw new IllegalArgumentException(
-                    "Cannot approve item with id: " + id + " by teacher with id: " + currentTeacherId);
-        }
-
-        explanatoryNoteItemService.approveItem(id, currentTeacherId, teacherCommentDto.getTeacherComment());
-
-        return new ResponseEntity<>(HttpStatus.OK);
+            @AuthenticationPrincipal AppUserDetails principal) {
+        explanatoryNoteItemService.approveItem(id, principal.getId(), teacherCommentDto.getTeacherComment());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/rejection")
     @PreAuthorize("hasRole('ROLE_TEACHER')")
     public ResponseEntity<Void> rejectExplanatoryNoteItem(@PathVariable Long id,
-            @Valid @RequestBody TeacherCommentDto teacherCommentDto, @AuthenticationPrincipal UserDetails userDetails)
-            throws Exception {
-        Long currentTeacherId = ((AppUserDetails) userDetails).getId();
-
-        log.info("Rejecting explanatory note item with id: {}, userId: {}", id, currentTeacherId);
-
-        if (!explanatoryNoteItemService.isItemBelongsToTeacher(id, currentTeacherId)) {
-            log.error("Cannot reject item with id: {}, by teacher with id: {}", id, currentTeacherId);
-            throw new IllegalArgumentException(
-                    "Cannot reject item with id: " + id + " by teacher with id: " + currentTeacherId);
-        }
-
-        explanatoryNoteItemService.rejectItem(id, currentTeacherId, teacherCommentDto.getTeacherComment());
-
-        return new ResponseEntity<>(HttpStatus.OK);
+            @Valid @RequestBody TeacherCommentDto teacherCommentDto,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        explanatoryNoteItemService.rejectItem(id, principal.getId(), teacherCommentDto.getTeacherComment());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/file")
     @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_ADMIN', 'ROLE_TEACHER')")
     public ResponseEntity<InputStreamResource> downloadItemFile(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AppUserDetails principal,
             @RequestParam(required = false) Long userId,
             @RequestParam Long projectId,
             @RequestParam Long itemId,
             @RequestParam(required = false) Long historyId) throws Exception {
-        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
-        Long targetUserId = userId == null ? appUserDetails.getId() : userId;
-
-        if (appUserDetails.getRole() == UserRole.STUDENT && !appUserDetails.getId().equals(targetUserId)) {
-            throw new IllegalArgumentException("Unauthorized access to item file");
-        }
+        Long targetUserId = explanatoryNoteItemService.resolveAccessibleUserId(userId, principal.getId(),
+                principal.getRole());
 
         InputStream inputStream = explanatoryNoteItemService.getItemFile(targetUserId, projectId, itemId, historyId);
         String fileName = explanatoryNoteItemService.getItemFileName(itemId, historyId);
@@ -144,23 +99,17 @@ public class ExplanatoryNoteItemController {
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('ROLE_TEACHER', 'ROLE_ADMIN')")
     public ResponseEntity<Map<String, String>> getItemSummary(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AppUserDetails principal,
             @RequestParam Long studentId,
             @RequestParam Long projectId,
             @RequestParam Long itemId,
             @RequestParam Long historyId) {
-        AppUserDetails appUserDetails = (AppUserDetails) userDetails;
+        explanatoryNoteItemService.resolveAccessibleUserId(studentId, principal.getId(), principal.getRole());
 
-        if (appUserDetails.getRole() == UserRole.STUDENT
-                && !appUserDetails.getId().equals(studentId)) {
-            throw new IllegalArgumentException("Unauthorized access to item summary");
-        }
+        String fileName = explanatoryNoteItemService.getItemFileName(itemId, historyId);
+        String summary = gigaChatService.summarizeReport(studentId, projectId, itemId, historyId, fileName);
 
-        log.info("Generating summary for itemId: {}, historyId: {}, requestedBy: {}",
-                itemId, historyId, appUserDetails.getId());
-
-        return ResponseEntity.ok(Map.of("summary", gigaChatService.summarizeReport(studentId, projectId,
-                itemId, historyId, explanatoryNoteItemService.getItemFileName(itemId, historyId))));
+        return ResponseEntity.ok(Map.of("summary", summary));
     }
 
 }

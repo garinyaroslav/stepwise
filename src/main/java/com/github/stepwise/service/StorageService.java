@@ -19,6 +19,7 @@ import java.io.InputStream;
 @RequiredArgsConstructor
 @Slf4j
 public class StorageService {
+
     private final MinioClient minioClient;
 
     private final MinioConfig minioConfig;

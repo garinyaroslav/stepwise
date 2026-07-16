@@ -1,9 +1,11 @@
 package com.github.stepwise.repository;
 
 import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import com.github.stepwise.entity.DefenseSchedule;
 
 public interface DefenseScheduleRepository extends JpaRepository<DefenseSchedule, Long> {
@@ -12,5 +14,19 @@ public interface DefenseScheduleRepository extends JpaRepository<DefenseSchedule
 
     @Query("SELECT COUNT(r) FROM DefenseRegistration r WHERE r.defenseSchedule.id = :scheduleId")
     int countRegistrations(@Param("scheduleId") Long scheduleId);
+
+    @Query("""
+            SELECT r.defenseSchedule.id AS scheduleId, COUNT(r) AS count
+            FROM DefenseRegistration r
+            WHERE r.defenseSchedule.id IN :scheduleIds
+            GROUP BY r.defenseSchedule.id
+            """)
+    List<ScheduleRegistrationCount> countRegistrationsByScheduleIds(@Param("scheduleIds") List<Long> scheduleIds);
+
+    interface ScheduleRegistrationCount {
+        Long getScheduleId();
+
+        long getCount();
+    }
 
 }

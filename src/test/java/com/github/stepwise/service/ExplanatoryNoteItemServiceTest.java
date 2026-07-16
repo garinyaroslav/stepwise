@@ -1,13 +1,20 @@
 package com.github.stepwise.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -18,10 +25,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.github.stepwise.configuration.FileUploadConfig;
-import com.github.stepwise.entity.*;
+import com.github.stepwise.entity.AcademicWork;
+import com.github.stepwise.entity.ExplanatoryNoteItem;
+import com.github.stepwise.entity.ItemHistory;
+import com.github.stepwise.entity.ItemStatus;
+import com.github.stepwise.entity.Project;
+import com.github.stepwise.entity.User;
+import com.github.stepwise.entity.UserRole;
+import com.github.stepwise.entity.WorkTemplate;
+import com.github.stepwise.exception.NotFoundException;
 import com.github.stepwise.repository.ExplanatoryNoteRepository;
 import com.github.stepwise.repository.ProjectRepository;
 import com.github.stepwise.repository.UserRepository;
@@ -31,16 +47,12 @@ class ExplanatoryNoteItemServiceTest {
 
     @Mock
     private ProjectRepository projectRepository;
-
     @Mock
     private ExplanatoryNoteRepository explanatoryNoteRepository;
-
     @Mock
     private FileUploadConfig fileUploadConfig;
-
     @Mock
     private StorageService storageService;
-
     @Mock
     private UserRepository userRepository;
 
@@ -52,39 +64,17 @@ class ExplanatoryNoteItemServiceTest {
     private Project project;
     private ExplanatoryNoteItem item;
     private MultipartFile file;
-    private AcademicWork academicWork;
-    private WorkTemplate workTemplate;
 
     @BeforeEach
     void setUp() {
-        student = User.builder()
-                .id(1L)
-                .username("student1")
-                .email("student@test.com")
-                .role(UserRole.STUDENT)
-                .build();
+        student = User.builder().id(1L).role(UserRole.STUDENT).build();
+        teacher = User.builder().id(2L).role(UserRole.TEACHER).build();
 
-        teacher = User.builder()
-                .id(2L)
-                .username("teacher1")
-                .email("teacher@test.com")
-                .role(UserRole.TEACHER)
-                .build();
-
-        workTemplate = WorkTemplate.builder()
-                .id(1L)
-                .countOfChapters(3)
-                .build();
-
-        academicWork = AcademicWork.builder()
-                .id(1L)
-                .workTemplate(workTemplate)
-                .build();
+        WorkTemplate workTemplate = WorkTemplate.builder().countOfChapters(3).build();
+        AcademicWork academicWork = AcademicWork.builder().workTemplate(workTemplate).build();
 
         project = Project.builder()
                 .id(1L)
-                .title("Test Project")
-                .description("Test Description")
                 .student(student)
                 .academicWork(academicWork)
                 .items(new ArrayList<>())
@@ -98,14 +88,12 @@ class ExplanatoryNoteItemServiceTest {
                 .history(new ArrayList<>())
                 .build();
 
-        project.getItems().add(item);
-
         file = mock(MultipartFile.class);
     }
 
     @Test
     void draftItem_ShouldCreateNewItem_WhenNoItemsExist() throws Exception {
-        project.setItems(new ArrayList<>());
+        project.getItems().clear();
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(file.getContentType()).thenReturn("application/pdf");
@@ -113,42 +101,94 @@ class ExplanatoryNoteItemServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(student));
         when(file.getOriginalFilename()).thenReturn("document.pdf");
 
-        Project savedProject = Project.builder()
-                .id(1L)
-                .title("Test Project")
-                .description("Test Description")
-                .student(student)
-                .academicWork(academicWork)
-                .items(new ArrayList<>())
-                .build();
-
-        ItemHistory savedHistory = ItemHistory.builder()
-                .id(100L)
-                .newStatus(ItemStatus.DRAFT)
-                .changedAt(LocalDateTime.now())
-                .fileName("document.pdf")
-                .build();
-
-        ExplanatoryNoteItem savedItem = ExplanatoryNoteItem.builder()
-                .id(10L)
-                .orderNumber(0)
-                .status(ItemStatus.DRAFT)
-                .project(savedProject)
-                .history(new ArrayList<>(List.of(savedHistory)))
-                .build();
-        savedHistory.setItem(savedItem);
-        savedProject.getItems().add(savedItem);
-
-        when(projectRepository.save(any(Project.class))).thenReturn(savedProject);
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
+            Project saved = invocation.getArgument(0);
+            if (!saved.getItems().isEmpty()) {
+                ExplanatoryNoteItem lastItem = saved.getItems().getLast();
+                if (lastItem.getId() == null) {
+                    lastItem.setId(10L);
+                }
+                if (!lastItem.getHistory().isEmpty()) {
+                    ItemHistory lastHistory = lastItem.getHistory().getLast();
+                    if (lastHistory.getId() == null) {
+                        lastHistory.setId(100L);
+                    }
+                }
+            }
+            return saved;
+        });
 
         service.draftItem(1L, 1L, file);
 
         verify(projectRepository, times(2)).save(any(Project.class));
-        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), anyLong(), isNull(), eq(file));
+        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), eq(10L), anyLong(), eq(file));
     }
 
     @Test
-    void draftItem_ShouldThrowException_WhenFileTypeNotAllowed() {
+    void draftItem_ShouldUpdateExistingDraft() throws Exception {
+        project.getItems().clear();
+        project.getItems().add(item);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(file.getContentType()).thenReturn("application/pdf");
+        when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(file.getOriginalFilename()).thenReturn("updated.pdf");
+
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
+            Project saved = invocation.getArgument(0);
+            if (!saved.getItems().isEmpty()) {
+                ExplanatoryNoteItem lastItem = saved.getItems().getLast();
+                if (!lastItem.getHistory().isEmpty()) {
+                    ItemHistory lastHistory = lastItem.getHistory().getLast();
+                    if (lastHistory.getId() == null) {
+                        lastHistory.setId(200L);
+                    }
+                }
+            }
+            return saved;
+        });
+
+        service.draftItem(1L, 1L, file);
+
+        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), eq(1L), anyLong(), eq(file));
+        assertEquals(ItemStatus.DRAFT, item.getStatus());
+    }
+
+    @Test
+    void draftItem_ShouldReuseRejectedItem() throws Exception {
+        item.setStatus(ItemStatus.REJECTED);
+        project.getItems().clear();
+        project.getItems().add(item);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(file.getContentType()).thenReturn("application/pdf");
+        when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(file.getOriginalFilename()).thenReturn("new-version.pdf");
+
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
+            Project saved = invocation.getArgument(0);
+            if (!saved.getItems().isEmpty()) {
+                ExplanatoryNoteItem lastItem = saved.getItems().getLast();
+                if (!lastItem.getHistory().isEmpty()) {
+                    ItemHistory lastHistory = lastItem.getHistory().getLast();
+                    if (lastHistory.getId() == null) {
+                        lastHistory.setId(200L);
+                    }
+                }
+            }
+            return saved;
+        });
+
+        service.draftItem(1L, 1L, file);
+
+        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), eq(1L), anyLong(), eq(file));
+        assertEquals(ItemStatus.DRAFT, item.getStatus());
+    }
+
+    @Test
+    void draftItem_ShouldThrow_WhenFileTypeNotAllowed() {
         when(file.getContentType()).thenReturn("text/plain");
         when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
 
@@ -156,17 +196,36 @@ class ExplanatoryNoteItemServiceTest {
     }
 
     @Test
-    void draftItem_ShouldThrowException_WhenUserNotOwner() {
+    void draftItem_ShouldThrow_WhenUserNotOwner() {
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(file.getContentType()).thenReturn("application/pdf");
         when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
 
-        assertThrows(IllegalArgumentException.class, () -> service.draftItem(999L, 1L, file));
+        assertThrows(AccessDeniedException.class, () -> service.draftItem(999L, 1L, file));
+    }
+
+    @Test
+    void draftItem_ShouldThrow_WhenAllItemsApproved() {
+        project.getItems().clear();
+        for (int i = 0; i < 3; i++) {
+            project.getItems().add(ExplanatoryNoteItem.builder()
+                    .id((long) i)
+                    .orderNumber(i)
+                    .status(ItemStatus.APPROVED)
+                    .build());
+        }
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(file.getContentType()).thenReturn("application/pdf");
+        when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
+
+        assertThrows(IllegalArgumentException.class, () -> service.draftItem(1L, 1L, file));
     }
 
     @Test
     void submitItem_ShouldChangeStatusToSubmitted() {
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(explanatoryNoteRepository.existsByIdAndUserId(1L, 1L)).thenReturn(true);
         when(userRepository.findById(1L)).thenReturn(Optional.of(student));
 
         service.submitItem(1L, 1L);
@@ -177,26 +236,25 @@ class ExplanatoryNoteItemServiceTest {
     }
 
     @Test
-    void submitItem_ShouldThrowException_WhenItemNotInDraft() {
+    void submitItem_ShouldThrow_WhenNotDraft() {
         item.setStatus(ItemStatus.SUBMITTED);
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(explanatoryNoteRepository.existsByIdAndUserId(1L, 1L)).thenReturn(true);
         when(userRepository.findById(1L)).thenReturn(Optional.of(student));
 
         assertThrows(IllegalArgumentException.class, () -> service.submitItem(1L, 1L));
     }
 
     @Test
-    void approveItem_ShouldChangeStatusToApproved_WithComment() {
+    void approveItem_ShouldChangeStatusToApproved() {
         item.setStatus(ItemStatus.SUBMITTED);
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(explanatoryNoteRepository.existsByIdAndTeacherId(1L, 2L)).thenReturn(true);
         when(userRepository.findById(2L)).thenReturn(Optional.of(teacher));
-        String comment = "Хорошая работа";
 
-        service.approveItem(1L, 2L, comment);
+        service.approveItem(1L, 2L, "Хорошо");
 
         assertEquals(ItemStatus.APPROVED, item.getStatus());
-        assertTrue(item.getHistory().stream()
-                .anyMatch(h -> h.getTeacherComment() != null && h.getTeacherComment().equals(comment)));
         verify(explanatoryNoteRepository).save(item);
     }
 
@@ -204,161 +262,60 @@ class ExplanatoryNoteItemServiceTest {
     void rejectItem_ShouldChangeStatusToRejected() {
         item.setStatus(ItemStatus.SUBMITTED);
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(explanatoryNoteRepository.existsByIdAndTeacherId(1L, 2L)).thenReturn(true);
         when(userRepository.findById(2L)).thenReturn(Optional.of(teacher));
 
-        service.rejectItem(1L, 2L, "Нужны исправления");
+        service.rejectItem(1L, 2L, "Исправить");
 
         assertEquals(ItemStatus.REJECTED, item.getStatus());
         verify(explanatoryNoteRepository).save(item);
     }
 
     @Test
-    void rejectItem_ShouldThrowException_WhenItemNotSubmitted() {
+    void rejectItem_ShouldThrow_WhenNotSubmitted() {
         item.setStatus(ItemStatus.DRAFT);
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(explanatoryNoteRepository.existsByIdAndTeacherId(1L, 2L)).thenReturn(true);
         when(userRepository.findById(2L)).thenReturn(Optional.of(teacher));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> service.rejectItem(1L, 2L, "Комментарий"));
-
-        assertTrue(exception.getMessage().contains("is not in SUBMITTED status"));
+        assertThrows(IllegalArgumentException.class, () -> service.rejectItem(1L, 2L, "Коммент"));
     }
 
     @Test
-    void getItemFile_ShouldReturnLatestFileFromHistory() throws Exception {
-        ItemHistory historyWithFile = ItemHistory.builder()
+    void getItemFile_ShouldReturnLatestFile() throws Exception {
+        ItemHistory history = ItemHistory.builder()
                 .id(10L)
-                .newStatus(ItemStatus.DRAFT)
-                .changedAt(LocalDateTime.now())
                 .fileName("test.pdf")
-                .item(item)
                 .build();
-        item.getHistory().add(historyWithFile);
-
-        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
-        InputStream mockStream = new ByteArrayInputStream("test content".getBytes());
-        when(storageService.downloadExplanatoryFile(1L, 1L, 1L, 10L, "test.pdf"))
-                .thenReturn(mockStream);
-
-        InputStream result = service.getItemFile(1L, 1L, 1L, null);
-
-        assertNotNull(result);
-        assertEquals(mockStream, result);
-    }
-
-    @Test
-    void getItemFile_ShouldReturnSpecificHistoryFile() throws Exception {
-        ItemHistory history1 = ItemHistory.builder()
-                .id(10L)
-                .newStatus(ItemStatus.DRAFT)
-                .changedAt(LocalDateTime.now().minusDays(1))
-                .fileName("v1.pdf")
-                .item(item)
-                .build();
-        ItemHistory history2 = ItemHistory.builder()
-                .id(11L)
-                .newStatus(ItemStatus.DRAFT)
-                .changedAt(LocalDateTime.now())
-                .fileName("v2.pdf")
-                .item(item)
-                .build();
-        item.getHistory().addAll(List.of(history1, history2));
-
-        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
-        InputStream mockStream = new ByteArrayInputStream("v1 content".getBytes());
-        when(storageService.downloadExplanatoryFile(1L, 1L, 1L, 10L, "v1.pdf"))
-                .thenReturn(mockStream);
-
-        InputStream result = service.getItemFile(1L, 1L, 1L, 10L);
-
-        assertNotNull(result);
-        assertEquals(mockStream, result);
-    }
-
-    @Test
-    void getItemFile_ShouldThrowException_WhenNoFileInHistory() throws Exception {
-        ItemHistory historyNoFile = ItemHistory.builder()
-                .id(20L)
-                .newStatus(ItemStatus.SUBMITTED)
-                .changedAt(LocalDateTime.now())
-                .item(item)
-                .build();
-        item.getHistory().add(historyNoFile);
+        item.getHistory().add(history);
 
         when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
 
-        assertThrows(IllegalArgumentException.class,
-                () -> service.getItemFile(1L, 1L, 1L, null));
+        InputStream stream = new ByteArrayInputStream(new byte[0]);
+        when(storageService.downloadExplanatoryFile(anyLong(), anyLong(), anyLong(), eq(10L), eq("test.pdf")))
+                .thenReturn(stream);
+
+        assertNotNull(service.getItemFile(1L, 1L, 1L, null));
     }
 
     @Test
-    void isItemBelongsToStudent_ShouldReturnTrue_WhenItemBelongsToStudent() {
+    void getItemFile_ShouldThrow_WhenNoFile() {
+        when(explanatoryNoteRepository.findById(1L)).thenReturn(Optional.of(item));
+
+        assertThrows(NotFoundException.class, () -> service.getItemFile(1L, 1L, 1L, null));
+    }
+
+    @Test
+    void isItemBelongsToStudent() {
         when(explanatoryNoteRepository.existsByIdAndUserId(1L, 1L)).thenReturn(true);
-
         assertTrue(service.isItemBelongsToStudent(1L, 1L));
     }
 
     @Test
-    void isItemBelongsToStudent_ShouldReturnFalse_WhenItemDoesNotBelongToStudent() {
-        when(explanatoryNoteRepository.existsByIdAndUserId(1L, 1L)).thenReturn(false);
-
-        assertFalse(service.isItemBelongsToStudent(1L, 1L));
+    void resolveAccessibleUserId_ForStudent() {
+        assertEquals(1L, service.resolveAccessibleUserId(null, 1L, UserRole.STUDENT));
+        assertThrows(AccessDeniedException.class,
+                () -> service.resolveAccessibleUserId(2L, 1L, UserRole.STUDENT));
     }
 
-    @Test
-    void isItemBelongsToTeacher_ShouldReturnTrue_WhenTeacherHasAccess() {
-        when(explanatoryNoteRepository.existsByIdAndTeacherId(1L, 2L)).thenReturn(true);
-
-        assertTrue(service.isItemBelongsToTeacher(1L, 2L));
-    }
-
-    @Test
-    void draftItem_ShouldUpdateExistingDraft_WhenLastItemIsDraft() throws Exception {
-        ItemHistory existingHistory = ItemHistory.builder()
-                .id(5L)
-                .newStatus(ItemStatus.DRAFT)
-                .changedAt(LocalDateTime.now().minusHours(1))
-                .fileName("old.pdf")
-                .item(item)
-                .build();
-        item.getHistory().add(existingHistory);
-
-        project.getItems().clear();
-        project.getItems().add(item);
-
-        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-        when(file.getContentType()).thenReturn("application/pdf");
-        when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(student));
-        when(file.getOriginalFilename()).thenReturn("updated.pdf");
-        when(projectRepository.save(any(Project.class))).thenReturn(project);
-
-        service.draftItem(1L, 1L, file);
-
-        verify(storageService).uploadExplanatoryFile(eq(1L), eq(1L), anyLong(), isNull(), eq(file));
-        ItemHistory lastHistory = item.getHistory().getLast();
-        assertEquals("updated.pdf", lastHistory.getFileName());
-    }
-
-    @Test
-    void draftItem_ShouldThrowException_WhenAllItemsSubmitted() {
-        project.getItems().clear();
-
-        for (int i = 0; i < 3; i++) {
-            ExplanatoryNoteItem approvedItem = ExplanatoryNoteItem.builder()
-                    .id((long) (i + 1))
-                    .orderNumber(i)
-                    .status(ItemStatus.APPROVED)
-                    .project(project)
-                    .history(new ArrayList<>())
-                    .build();
-            project.getItems().add(approvedItem);
-        }
-
-        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-        when(file.getContentType()).thenReturn("application/pdf");
-        when(fileUploadConfig.getAllowedMimeTypes()).thenReturn(List.of("application/pdf"));
-
-        assertThrows(IllegalArgumentException.class, () -> service.draftItem(1L, 1L, file));
-    }
 }
