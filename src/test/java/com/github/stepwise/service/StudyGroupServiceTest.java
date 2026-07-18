@@ -119,25 +119,25 @@ class StudyGroupServiceTest {
 
     @Test
     void findById_WhenGroupExists_ShouldReturnGroup() {
-        when(studyGroupRepository.findById(1L)).thenReturn(Optional.of(studyGroup));
+        when(studyGroupRepository.findByIdWithStudents(1L)).thenReturn(Optional.of(studyGroup));
 
         StudyGroup result = studyGroupService.findById(1L);
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
         assertEquals("Math Group", result.getName());
-        verify(studyGroupRepository, times(1)).findById(1L);
+        verify(studyGroupRepository, times(1)).findByIdWithStudents(1L);
     }
 
     @Test
     void findById_WhenGroupNotExists_ShouldThrowException() {
-        when(studyGroupRepository.findById(999L)).thenReturn(Optional.empty());
+        when(studyGroupRepository.findByIdWithStudents(999L)).thenReturn(Optional.empty());
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> studyGroupService.findById(999L));
 
         assertEquals("Group not found with id: 999", exception.getMessage());
-        verify(studyGroupRepository, times(1)).findById(999L);
+        verify(studyGroupRepository, times(1)).findByIdWithStudents(999L);
     }
 
     @Test

@@ -68,6 +68,7 @@ public class ExceptionHandlerAdvice {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGlobalException(Exception ex) {
+        log.error("{}", ex);
         return new ResponseEntity<>(new MessageResponse("Unexpected error: " + ex.getMessage()),
                 HttpStatus.INTERNAL_SERVER_ERROR);
     }

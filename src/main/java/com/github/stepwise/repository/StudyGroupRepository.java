@@ -1,6 +1,7 @@
 package com.github.stepwise.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,5 +21,8 @@ public interface StudyGroupRepository extends JpaRepository<StudyGroup, Long> {
             WHERE LOWER(g.name) LIKE LOWER(CONCAT('%', :search, '%'))
             """)
     List<GroupResponseDto> findSummariesByNameContaining(@Param("search") String search);
+
+    @Query("SELECT g FROM StudyGroup g LEFT JOIN FETCH g.students WHERE g.id = :id")
+    Optional<StudyGroup> findByIdWithStudents(@Param("id") Long id);
 
 }

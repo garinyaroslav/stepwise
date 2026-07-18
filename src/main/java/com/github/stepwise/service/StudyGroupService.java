@@ -46,7 +46,7 @@ public class StudyGroupService {
 
     public StudyGroup findById(Long groupId) {
         log.info("Fetching group by id: {}", groupId);
-        return studyGroupRepository.findById(groupId)
+        return studyGroupRepository.findByIdWithStudents(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found with id: " + groupId));
     }
 
